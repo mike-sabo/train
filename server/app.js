@@ -3,6 +3,8 @@ import { randomBytes, randomInt, createHash } from "node:crypto";
 import { z } from "zod";
 import { database } from "./db.js";
 import { planSchema, dateSchema, addDays, today } from "./schema.js";
+import { themes } from "../shared/themes.js";
+import { previousExercises } from "./history.js";
 const emailSchema = z.string().trim().toLowerCase().email().max(254);
 const hash = (s) => createHash("sha256").update(s).digest("hex");
 const fail = (status, message) => {
@@ -252,7 +254,12 @@ export function createApp(config = {}) {
         return { member_id: l.member_id, date: l.date, completed: l.completed };
       });
     res.json({
-      me: { id: req.member.id, name: req.member.name, role: req.member.role },
+      me: {
+        id: req.member.id,
+        name: req.member.name,
+        role: req.member.role,
+        theme: req.member.theme,
+      },
       members,
       plans: db
         .prepare("SELECT body FROM plans")
@@ -261,6 +268,21 @@ export function createApp(config = {}) {
       blocks: db.prepare("SELECT * FROM blocks ORDER BY start").all(),
       logs,
     });
+  });
+  app.get("/api/history", (req, res) => {
+    const before = dateSchema.parse(req.query.before);
+    res.json({ history: previousExercises(db, req.member.id, before) });
+  });
+  app.put("/api/preferences", (req, res) => {
+    const { theme } = z
+      .object({ theme: z.enum(themes.map((theme) => theme.id)) })
+      .strict()
+      .parse(req.body);
+    db.prepare("UPDATE members SET theme=? WHERE id=?").run(
+      theme,
+      req.member.id,
+    );
+    res.json({ theme });
   });
   app.post("/api/invites", owner, async (req, res) => {
     const { email, name } = z

@@ -114,6 +114,16 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 300
+                    },
+                    "startSeconds": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 86400
+                    },
+                    "caption": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
                     }
                   },
                   "required": [
@@ -171,6 +181,16 @@
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 300
+                          },
+                          "startSeconds": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 86400
+                          },
+                          "caption": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 100
                           }
                         },
                         "required": [

@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "id": "three-day-foundation",
+  "version": 3,
+  "name": "The 3-Day Foundation",
+  "description": "Eight weeks of training together, with lateral raises and leg-press calf raises on Monday and Friday.",
+  "schedule": "Mon / Wed / Fri · 7:00–7:50 AM",
+  "weeks": 8,
+  "notes": [
+    "The first three exercises are the priority.",
+    "Alternate sets with your partner. Rest 60–90 seconds between your own sets, up to 2 minutes for demanding lifts.",
+    "Leave 2–3 reps in reserve. Increase weights gradually when you reach the top of your rep range with good form.",
+    "Start unfamiliar exercises with lighter weights, and have a YMCA trainer check your setup."
+  ],
+  "days": [
+    {
+      "id": "monday",
+      "weekday": 1,
+      "name": "Monday",
+      "focus": "Legs, Chest & Shoulders",
+      "exercises": [
+        {
+          "id": "leg-press",
+          "name": "Leg Press Machine",
+          "sets": 3,
+          "reps": "8–12",
+          "demo": {
+            "instructor": "Jeff Nippard",
+            "url": "https://www.youtube.com/watch?v=nDh_BlnLCGc",
+            "verifiedOn": "2026-10-22",
+            "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "chest-press",
+          "name": "Dumbbell Chest Press",
+          "sets": 3,
+          "reps": "8–12",
+          "demo": {
+            "instructor": "Scott Herman",
+            "url": "https://www.youtube.com/watch?v=VmB1G1K7v94",
+            "verifiedOn": "2026-10-22",
+            "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "landmine-press",
+          "name": "Landmine Shoulder Press",
+          "sets": 2,
+          "reps": "10/arm",
+          "demo": {
+            "instructor": "Eric Cressey",
+            "url": "https://www.youtube.com/watch?v=jCfcGei-NqM",
+            "verifiedOn": "2026-10-22",
+            "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "leg-extension",
+          "name": "Leg Extension Machine",
+          "sets": 2,
+          "reps": "10–15",
+          "demo": {
+            "instructor": "Albert Dorner",
+            "url": "https://www.youtube.com/watch?v=wV5hGR7z5Qw",
+            "verifiedOn": "2026-10-22",
+            "verification": "Exercise title and creator checked on the supplied Albert Dorner channel; clip opened and instructor visually confirmed."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "triceps",
+          "name": "Triceps Pushdowns",
+          "sets": 2,
+          "reps": "10–15",
+          "demo": {
+            "instructor": "Jeff Nippard",
+            "url": "https://www.youtube.com/watch?v=94DXwlcX8Po",
+            "verifiedOn": "2026-10-22",
+            "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "lateral-raise",
+          "name": "Dumbbell Lateral Raise",
+          "sets": 2,
+          "reps": "12–15",
+          "demo": {
+            "instructor": "Jeff Nippard",
+            "url": "https://www.youtube.com/watch?v=HeovYNoZDRg",
+            "verifiedOn": "2026-10-22",
+            "verification": "Opened the verified Jeff Nippard channel video. Title, description and visible instructor match dumbbell lateral raises; the short compares standing and leaning variations."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "leg-press-calf-raise",
+          "name": "Leg Press Calf Raise",
+          "sets": 2,
+          "reps": "12–20",
+          "demo": {
+            "instructor": "Jeff Nippard",
+            "url": "https://www.youtube.com/watch?v=Y4Vv2ASsyhs",
+            "startSeconds": 683,
+            "caption": "Single-leg demonstration · starts at 11:23",
+            "verifiedOn": "2026-10-22",
+            "verification": "Opened the verified Jeff Nippard workout and its Single Leg Press Calf Raise chapter at 11:23. The demonstration shows the single-leg variation."
+          },
+          "substitutions": []
+        }
+      ]
+    },
+    {
+      "id": "wednesday",
+      "weekday": 3,
+      "name": "Wednesday",
+      "focus": "Legs, Back & Biceps",
+      "exercises": [
+        {
+          "id": "leg-curl",
+          "name": "Seated Leg Curl",
+          "sets": 3,
+          "reps": "10–12",
+          "demo": {
+            "instructor": "David Jack",
+            "url": "https://www.youtube.com/watch?v=t9sTSr-JYSs",
+            "verifiedOn": "2026-10-22",
+            "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "lat-pulldown",
+          "name": "Lat Pulldown Machine",
+          "sets": 3,
+          "reps": "8–12",
+          "demo": {
+            "instructor": "Jeff Nippard",
+            "url": "https://www.youtube.com/watch?v=SqQxuEpXnF4",
+            "verifiedOn": "2026-10-22",
+            "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "cable-row",
+          "name": "Seated Cable Row",
+          "sets": 3,
+          "reps": "8–12",
+          "demo": {
+            "instructor": "Albert Dorner",
+            "url": "https://www.youtube.com/watch?v=kWlBNZtc0og",
+            "verifiedOn": "2026-10-22",
+            "verification": "Matched the close-grip cable row tutorial on the supplied Albert Dorner channel."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "glute-drive",
+          "name": "Glute Drive / Hip Thrust Machine",
+          "sets": 2,
+          "reps": "10–12",
+          "demo": {
+            "instructor": "Mark Ottobre",
+            "url": "https://www.youtube.com/watch?v=vvu_jEoO5cs",
+            "verifiedOn": "2026-10-22",
+            "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "biceps",
+          "name": "Dumbbell Biceps Curls",
+          "sets": 2,
+          "reps": "10–15",
+          "demo": {
+            "instructor": "Scott Herman",
+            "url": "https://www.youtube.com/watch?v=sAq_ocpRh_I",
+            "verifiedOn": "2026-10-22",
+            "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+          },
+          "substitutions": []
+        }
+      ]
+    },
+    {
+      "id": "friday",
+      "weekday": 5,
+      "name": "Friday",
+      "focus": "Legs, Chest, Back & Abs",
+      "exercises": [
+        {
+          "id": "leg-press",
+          "name": "Leg Press Machine",
+          "sets": 3,
+          "reps": "8–12",
+          "demo": {
+            "instructor": "Jeff Nippard",
+            "url": "https://www.youtube.com/watch?v=nDh_BlnLCGc",
+            "verifiedOn": "2026-10-22",
+            "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+          },
+          "substitutions": [
+            {
+              "id": "landmine-squat",
+              "name": "Landmine Squat",
+              "sets": 3,
+              "reps": "8–12",
+              "demo": {
+                "instructor": "Ben Bruno",
+                "url": "https://www.youtube.com/watch?v=_mfORB47xMs",
+                "verifiedOn": "2026-10-22",
+                "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+              },
+              "substitutions": []
+            }
+          ]
+        },
+        {
+          "id": "incline-press",
+          "name": "Incline Dumbbell Chest Press",
+          "sets": 3,
+          "reps": "8–12",
+          "demo": {
+            "instructor": "Jeff Nippard",
+            "url": "https://www.youtube.com/watch?v=PEiIOW7HGnA",
+            "verifiedOn": "2026-10-22",
+            "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "supported-row",
+          "name": "Chest-Supported Row Machine",
+          "sets": 3,
+          "reps": "8–12",
+          "demo": {
+            "instructor": "Colossus Fitness",
+            "url": "https://www.youtube.com/watch?v=FU6YQawma2Q",
+            "verifiedOn": "2026-10-22",
+            "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "leg-curl",
+          "name": "Seated Leg Curl",
+          "sets": 2,
+          "reps": "10–15",
+          "demo": {
+            "instructor": "David Jack",
+            "url": "https://www.youtube.com/watch?v=t9sTSr-JYSs",
+            "verifiedOn": "2026-10-22",
+            "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "crunch",
+          "name": "Abdominal Crunch Machine",
+          "sets": 2,
+          "reps": "10–15",
+          "demo": {
+            "instructor": "Scott Herman",
+            "url": "https://www.youtube.com/watch?v=_O1xunCfYEM",
+            "verifiedOn": "2026-10-22",
+            "verification": "YouTube title and instructor metadata checked against the requested exercise. Playback is subject to YouTube availability."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "lateral-raise",
+          "name": "Dumbbell Lateral Raise",
+          "sets": 2,
+          "reps": "12–15",
+          "demo": {
+            "instructor": "Jeff Nippard",
+            "url": "https://www.youtube.com/watch?v=HeovYNoZDRg",
+            "verifiedOn": "2026-10-22",
+            "verification": "Opened the verified Jeff Nippard channel video. Title, description and visible instructor match dumbbell lateral raises; the short compares standing and leaning variations."
+          },
+          "substitutions": []
+        },
+        {
+          "id": "leg-press-calf-raise",
+          "name": "Leg Press Calf Raise",
+          "sets": 2,
+          "reps": "12–20",
+          "demo": {
+            "instructor": "Jeff Nippard",
+            "url": "https://www.youtube.com/watch?v=Y4Vv2ASsyhs",
+            "startSeconds": 683,
+            "caption": "Single-leg demonstration · starts at 11:23",
+            "verifiedOn": "2026-10-22",
+            "verification": "Opened the verified Jeff Nippard workout and its Single Leg Press Calf Raise chapter at 11:23. The demonstration shows the single-leg variation."
+          },
+          "substitutions": []
+        }
+      ]
+    }
+  ]
+}

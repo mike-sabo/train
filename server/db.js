@@ -24,11 +24,20 @@ export function database(path) {
       "ALTER TABLE members ADD COLUMN access_version INTEGER NOT NULL DEFAULT 0",
     );
   }
+  if (!memberColumns.some((column) => column.name === "theme")) {
+    db.exec(
+      "ALTER TABLE members ADD COLUMN theme TEXT NOT NULL DEFAULT 'ember-sky'",
+    );
+  }
   // A configuration mistake must never create a second administrator.
   db.exec(
     "CREATE UNIQUE INDEX IF NOT EXISTS single_owner ON members(role) WHERE role='owner'",
   );
-  for (const file of ["foundation-v1.json", "foundation-v2.json"]) {
+  for (const file of [
+    "foundation-v1.json",
+    "foundation-v2.json",
+    "foundation-v3.json",
+  ]) {
     const plan = planSchema.parse(
       JSON.parse(
         readFileSync(new URL(`../plans/${file}`, import.meta.url), "utf8"),

@@ -45,6 +45,7 @@ Mike is the only admin. A database constraint prevents a second admin account, a
 | View member email addresses                   | Yes          | No             |
 | Invite, revoke invitations, or remove members | Yes          | No             |
 | Import plan versions and schedule blocks      | Yes          | No             |
+| Choose a personal color theme                 | Own account  | Own account    |
 
 The Group tab shows **Revoke invitation** for pending invitations and **Remove member** for accepted accounts. Confirmation immediately invalidates that person's sessions and unused codes. Removed people cannot request new codes or read or write private app data. Their existing workout history remains in the database, visible only to the admin while their access is revoked. **Invite again** restores the same account and history after a fresh email sign-in; old codes and sessions stay invalid. Mike's admin account cannot be removed through the app.
 
@@ -52,11 +53,21 @@ Authorization is enforced by the server, including direct API calls. Member resp
 
 ## Plans and history
 
-`plans/foundation-v1.json` contains the exact Monday/Wednesday/Friday routine recovered from the original chat, including the optional Friday landmine squat. `plans/foundation-v2.json` is the current routine: Friday uses leg press (3 × 8–12) because the YMCA has no hack squat machine, with landmine squat still available. Version 1 remains available for existing history. Import/export uses schema version 1. `plans/plan.schema.json` documents the JSON shape; `server/schema.js` adds validation for unique day and exercise IDs.
+`plans/foundation-v1.json` contains the exact Monday/Wednesday/Friday routine recovered from the original chat, including the optional Friday landmine squat. Version 2 replaced Friday's hack squat with leg press (3 × 8–12), keeping landmine squat available. `plans/foundation-v3.json` is the current routine: it adds dumbbell lateral raises (2 × 12–15) and leg-press calf raises (2 × 12–20) on Monday and Friday. Earlier versions remain available for existing history. Import/export uses schema version 1. `plans/plan.schema.json` documents the JSON shape; `server/schema.js` adds validation for unique day and exercise IDs.
 
 To change routines, export a plan, edit it, increment its version, import it, and schedule a non-overlapping block. A new routine can have a new plan ID and start at version 1. Existing plan versions cannot be overwritten. Blocks point to immutable versions, and logs point to blocks. Past logs retain exercises, selected substitutions, and per-set weights and reps. New blocks can start after an existing block; shortening an active block is not implemented.
 
 Demonstrations prefer Jeff Nippard and Albert Dorner (Bertl_lifts). Exercise-specific alternatives remain where a matching preferred tutorial was not verified. Source URLs and verification notes are included in each exercise. Verification means matching title, exercise and creator metadata, plus the noted visual check; it does not guarantee future availability or certify exercise safety. The incline demonstration discusses multiple movements, including incline dumbbell pressing.
+
+Version 3 uses Jeff Nippard for both new exercises. The lateral-raise short compares dumbbell variations. The calf-raise link starts at 11:23 in his leg workout and is explicitly labeled as a single-leg demonstration. Optional demo fields `startSeconds` and `caption` preserve the base YouTube URL while opening the relevant segment.
+
+## Faster logging and personal themes
+
+Open **Log sets** to enter weight and reps. The copy button beside each later row copies the preceding set; **Use set 1 for all sets** fills the existing planned rows without adding sets. Each copied row remains independently editable.
+
+For a new exercise entry, the app prefills values from that member's latest earlier completed occurrence of the same exercise and variation. The lookup matches the exercise ID and name across plan versions. Leg presses, calf raises, and landmine squats retain separate histories. **Last completed** shows the source date and values, and **Use last time** restores them explicitly. Existing saved entries and edits already in progress take precedence. Prefills do not mark exercises or workouts complete, and uncompleted suggestions are excluded from subsequent history lookups. If a later plan adds sets, unmatched extra rows start blank.
+
+The palette button in the header opens ten themes, including two light options. A signed-in user's selection is saved in SQLite and restored on other devices when they load their account. Changing themes does not alter workout edits or anyone else's preferences. The unsigned preview remembers a separate device-local choice. Theme changes and previous-set lookups require an active invitation and are scoped to the signed-in member.
 
 ## Hosting and mikesabo.dev/workout-plan
 
@@ -69,3 +80,5 @@ No real member accounts or emails are seeded. The preview names Mike and Jason a
 ## Verification
 
 Integration tests cover invitation-only sign-in, code expiration and reuse, failed-attempt limits, cross-origin writes, owner-only actions, sign-out, per-member logs, stale-write conflicts, future/recovery-day rejection, overlapping blocks, immutable plan versions, and persistence across database connections. Permission tests cover pending and accepted account revocation, session and code invalidation, re-invitation with retained history, member response privacy, database upgrades, delayed email delivery, and the single-admin constraint.
+
+Logging tests cover earlier dates, completed exercises, independent members and variations, renamed exercises, changed set counts, zero values, and copying without shared object references. Theme tests cover persistence, invalid choices, cross-account writes, revoked access, and cross-origin requests. Mobile checks exercise autofill, both copy controls, saving and reloading, separate calf history, and theme changes without losing edits.

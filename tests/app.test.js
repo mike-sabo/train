@@ -230,14 +230,19 @@ test("workouts are durable, scoped to the signed-in member, and preserve plan ve
     jason,
     "PUT",
   );
-  const next = { ...plan, version: 3, name: "Next block" };
+  const nextVersion = Math.max(...state.plans.map((plan) => plan.version)) + 1;
+  const next = { ...plan, version: nextVersion, name: "Next block" };
   assert.equal((await request("/plans", next, owner)).status, 200);
   assert.equal((await request("/plans", next, owner)).status, 409);
   assert.equal(
     (
       await request(
         "/blocks",
-        { planKey: `${plan.id}@3`, start: addDays(date, 56), weeks: 6 },
+        {
+          planKey: `${plan.id}@${nextVersion}`,
+          start: addDays(date, 56),
+          weeks: 6,
+        },
         owner,
       )
     ).status,
@@ -270,7 +275,7 @@ test("workouts are durable, scoped to the signed-in member, and preserve plan ve
   second.locals.db.close();
   assert.equal(
     app.locals.db.prepare("SELECT COUNT(*) AS count FROM plans").get().count,
-    3,
+    state.plans.length + 1,
   );
 });
 test("production refuses development authentication and unconfigured owners", () => {
@@ -719,5 +724,253 @@ test("an email finishing after revocation and re-invitation cannot restore the o
       })
     ).status,
     400,
+  );
+});
+
+test("each member can persist only their own valid color theme", async (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "train-together-theme-test-"));
+  const path = join(dir, "test.sqlite");
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const { request, login } = await fixture(t, path);
+  assert.equal(
+    (await request("/preferences", { theme: "ocean-mint" }, "", "PUT")).status,
+    401,
+  );
+  const owner = await login("mike@example.com");
+  await request(
+    "/invites",
+    { name: "Jason", email: "jason@example.com" },
+    owner,
+  );
+  const jason = await login("jason@example.com");
+  const ownerState = (await request("/state", undefined, owner)).data;
+  assert.equal(
+    (await request("/preferences", { theme: "porcelain-teal" }, jason, "PUT"))
+      .status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(
+        "/preferences",
+        { theme: "forest-brass", member_id: ownerState.me.id },
+        jason,
+        "PUT",
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (await request("/preferences", { theme: "not-a-theme" }, jason, "PUT"))
+      .status,
+    400,
+  );
+  assert.equal(
+    (
+      await request(
+        "/preferences",
+        { theme: "ocean-mint" },
+        jason,
+        "PUT",
+        "https://outside.example",
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await request("/state", undefined, owner)).data.me.theme,
+    "ember-sky",
+  );
+  const memberState = (await request("/state", undefined, jason)).data;
+  assert.equal(memberState.me.theme, "porcelain-teal");
+  assert.ok(memberState.members.every((member) => !("theme" in member)));
+  const reopened = createApp({
+    dbPath: path,
+    production: false,
+    emailMode: "development",
+    ownerEmail: "mike@example.com",
+  });
+  assert.equal(
+    reopened.locals.db
+      .prepare("SELECT theme FROM members WHERE email='jason@example.com'")
+      .get().theme,
+    "porcelain-teal",
+  );
+  reopened.locals.db.close();
+  await request(`/members/${memberState.me.id}/revoke`, {}, owner);
+  assert.equal(
+    (await request("/preferences", { theme: "ocean-mint" }, jason, "PUT"))
+      .status,
+    401,
+  );
+  assert.equal(
+    (await request("/history?before=" + today(), undefined, jason)).status,
+    401,
+  );
+});
+
+test("previous sets use only earlier completed matching exercises from the signed-in member", async (t) => {
+  const { request, login } = await fixture(t);
+  const owner = await login("mike@example.com");
+  await request(
+    "/invites",
+    { name: "Jason", email: "jason@example.com" },
+    owner,
+  );
+  const jason = await login("jason@example.com");
+  const monday = addDays(
+    today(),
+    -((new Date(today() + "T12:00:00Z").getUTCDay() + 6) % 7) - 14,
+  );
+  const friday = addDays(monday, 4);
+  const nextMonday = addDays(monday, 7);
+  const nextFriday = addDays(monday, 11);
+  assert.equal(
+    (
+      await request(
+        "/blocks",
+        { planKey: "three-day-foundation@2", start: monday, weeks: 1 },
+        owner,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(
+        "/blocks",
+        { planKey: "three-day-foundation@3", start: nextMonday, weeks: 2 },
+        owner,
+      )
+    ).status,
+    200,
+  );
+  const sets = [
+    { weight: 120, reps: 12 },
+    { weight: 115, reps: 10 },
+    { weight: 110, reps: 8 },
+  ];
+  const save = (date, entries, cookie = owner) =>
+    request(
+      "/logs/" + date,
+      { entries, completed: false, revision: 0 },
+      cookie,
+      "PUT",
+    );
+  assert.equal(
+    (
+      await save(monday, {
+        "leg-press": { done: true, variant: "leg-press", sets },
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await save(friday, {
+        "leg-press": {
+          done: true,
+          variant: "landmine-squat",
+          sets: sets.map(() => ({ weight: 50, reps: 10 })),
+        },
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await save(
+        monday,
+        {
+          "leg-press": {
+            done: true,
+            variant: "leg-press",
+            sets: sets.map(() => ({ weight: 240, reps: 8 })),
+          },
+        },
+        jason,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await request("/history?before=invalid", undefined, owner)).status,
+    400,
+  );
+  assert.deepEqual(
+    (await request("/history?before=" + monday, undefined, owner)).data.history,
+    {},
+  );
+  const history = (
+    await request("/history?before=" + nextMonday, undefined, owner)
+  ).data.history;
+  assert.deepEqual(history["leg-press"], { date: monday, sets });
+  assert.equal(history["leg-press-calf-raise"], undefined);
+  assert.equal(history["lateral-raise"], undefined);
+  assert.equal(history["landmine-squat"], undefined);
+  assert.equal(
+    (
+      await request(
+        "/history?before=" + nextMonday + "&member_id=1",
+        undefined,
+        jason,
+      )
+    ).data.history["leg-press"].sets[0].weight,
+    240,
+  );
+  // Saving uncompleted prefills must not replace the latest performed exercise.
+  assert.equal(
+    (
+      await save(nextMonday, {
+        "leg-press": {
+          done: false,
+          variant: "leg-press",
+          sets: sets.map(() => ({ weight: 999, reps: 9 })),
+        },
+      })
+    ).status,
+    200,
+  );
+  const fridayHistory = (
+    await request("/history?before=" + nextFriday, undefined, owner)
+  ).data.history;
+  assert.deepEqual(fridayHistory["leg-press"], { date: monday, sets });
+  assert.equal(fridayHistory["landmine-squat"].date, friday);
+  assert.equal(fridayHistory["landmine-squat"].sets[0].weight, 50);
+  assert.deepEqual(
+    (
+      await request(
+        "/history?before=" + addDays(nextMonday, 1),
+        undefined,
+        owner,
+      )
+    ).data.history,
+    {},
+  );
+  const targetPlan = (
+    await request("/state", undefined, owner)
+  ).data.plans.find((plan) => plan.version === 3);
+  const changed = structuredClone(targetPlan);
+  changed.id = "different-machine";
+  changed.days[0].exercises[0].name = "Different Leg Machine";
+  assert.equal((await request("/plans", changed, owner)).status, 200);
+  assert.equal(
+    (
+      await request(
+        "/blocks",
+        {
+          planKey: "different-machine@3",
+          start: addDays(monday, 21),
+          weeks: 1,
+        },
+        owner,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await request("/history?before=" + addDays(monday, 21), undefined, owner))
+      .data.history["leg-press"],
+    undefined,
   );
 });

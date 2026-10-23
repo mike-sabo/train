@@ -5,6 +5,8 @@ const demo = z.object({
   url: z.string().regex(/^https:\/\/www\.youtube\.com\/watch\?v=[\w-]{11}$/),
   verifiedOn: z.iso.date(),
   verification: z.string().min(1).max(300),
+  startSeconds: z.number().int().min(0).max(86400).optional(),
+  caption: z.string().min(1).max(100).optional(),
 });
 const exercise = z.object({
   id,

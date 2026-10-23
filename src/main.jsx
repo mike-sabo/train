@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Dumbbell,
@@ -20,8 +20,16 @@ import {
   X,
   Mail,
   CheckCircle2,
+  Copy,
+  Palette,
 } from "lucide-react";
-import initialPlan from "../plans/foundation-v2.json";
+import initialPlan from "../plans/foundation-v3.json";
+import { themes, defaultTheme, getTheme } from "../shared/themes.js";
+import {
+  makeEntry,
+  copyPreviousSet,
+  repeatFirstSet,
+} from "../shared/workouts.js";
 import "./style.css";
 const key = (p) => `${p.id}@${p.version}`;
 const iso = (d) =>
@@ -58,7 +66,19 @@ function App() {
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
-    [previewLogs, setPreviewLogs] = useState([]);
+    [previewLogs, setPreviewLogs] = useState([]),
+    [history, setHistory] = useState({ context: "", entries: {} }),
+    [historyError, setHistoryError] = useState(""),
+    [previewTheme, setPreviewTheme] = useState(() => {
+      try {
+        return getTheme(localStorage.getItem("tt-preview-theme")).id;
+      } catch {
+        return defaultTheme;
+      }
+    });
+  const loadSequence = useRef(0);
+  const currentWeek = useRef(week);
+  currentWeek.current = week;
   const preview = !state;
   const data = state ?? {
     me: { id: 1, name: "Mike", role: "owner" },
@@ -92,14 +112,86 @@ function App() {
     );
   const [draft, setDraft] = useState({}),
     [dirty, setDirty] = useState(false);
+  const theme = getTheme(state?.me.theme ?? previewTheme);
+  useEffect(() => {
+    const root = document.documentElement;
+    for (const name of [
+      "bg",
+      "surface",
+      "text",
+      "muted",
+      "border",
+      "accent",
+      "secondary",
+    ]) {
+      root.style.setProperty(`--${name}`, theme[name]);
+    }
+    root.style.setProperty("--on-accent", theme.ink);
+    root.style.setProperty("--on-secondary", theme.ink);
+    root.style.setProperty(
+      "--error",
+      theme.mode === "light" ? "#A42D22" : "#FFB8AA",
+    );
+    root.style.colorScheme = theme.mode;
+  }, [theme.id]);
   useEffect(() => {
     setDraft(log?.body ?? {});
     setDirty(false);
-  }, [selected, log]);
+  }, [selected, log, data.me.id, preview]);
+  const historyContext = `${data.me.id}:${selected}:${preview}`;
+  useEffect(() => {
+    let active = true;
+    setHistoryError("");
+    if (preview) {
+      const entries = {};
+      for (const row of [...previewLogs]
+        .filter((row) => row.date < selected)
+        .sort((a, b) => b.date.localeCompare(a.date))) {
+        for (const entry of Object.values(row.body)) {
+          if (
+            entry.done &&
+            !entries[entry.variant] &&
+            entry.sets.some((set) => set.weight !== null || set.reps !== null)
+          ) {
+            entries[entry.variant] = { date: row.date, sets: entry.sets };
+          }
+        }
+      }
+      setHistory({ context: historyContext, entries });
+    } else {
+      api(`/history?before=${selected}`)
+        .then((result) => {
+          if (active)
+            setHistory({ context: historyContext, entries: result.history });
+        })
+        .catch((error) => {
+          if (active) {
+            setHistory({ context: historyContext, entries: {} });
+            setHistoryError(
+              "Previous sets could not be loaded. You can still enter them manually.",
+            );
+          }
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [
+    selected,
+    state?.me.id,
+    state?.logs,
+    state?.blocks,
+    preview,
+    previewLogs,
+  ]);
+  const previous = history.context === historyContext ? history.entries : {};
   async function load() {
+    const sequence = ++loadSequence.current;
     try {
-      setState(await api("/state?week=" + week));
+      const result = await api("/state?week=" + currentWeek.current);
+      if (sequence === loadSequence.current) setState(result);
     } catch (e) {
+      if (sequence !== loadSequence.current) return;
       if (e.status === 401) setState(null);
       else setError(e.message);
     }
@@ -125,6 +217,7 @@ function App() {
       await fn();
     } catch (e) {
       if (e.status === 401) {
+        loadSequence.current++;
         setState(null);
         setModal("signin");
       }
@@ -143,17 +236,11 @@ function App() {
     setWeek(monday(date));
   }
   function entry(e) {
-    return (
-      draft[e.id] ?? {
-        done: false,
-        variant: e.id,
-        sets: Array.from({ length: e.sets }, () => ({
-          weight: null,
-          reps: null,
-        })),
-      }
-    );
+    return draft[e.id] ?? log?.body[e.id] ?? makeEntry(e, previous[e.id]);
   }
+  const currentEntries = Object.fromEntries(
+    (day?.exercises ?? []).map((exercise) => [exercise.id, entry(exercise)]),
+  );
   function update(e, value) {
     setDraft((d) => ({ ...d, [e.id]: value }));
     setDirty(true);
@@ -186,6 +273,20 @@ function App() {
         : "Progress saved to your account.",
     );
     setDirty(false);
+  }
+  async function chooseTheme(id) {
+    if (preview) {
+      setPreviewTheme(id);
+      try {
+        localStorage.setItem("tt-preview-theme", id);
+      } catch {}
+      return;
+    }
+    const result = await api("/preferences", { theme: id }, "PUT");
+    setState(
+      (current) =>
+        current && { ...current, me: { ...current.me, theme: result.theme } },
+    );
   }
   const completed = day?.exercises.filter((e) => entry(e).done).length ?? 0;
   const weekLogs = data.logs.filter(
@@ -358,29 +459,43 @@ function App() {
             </button>
           ))}
         </nav>
-        <button
-          className="account"
-          onClick={() =>
-            preview
-              ? setModal("signin")
-              : act(async () => {
-                  await api("/auth/logout", {});
-                  setState(null);
-                })
-          }
-        >
-          {preview ? (
-            <>
-              <Lock size={15} />
-              Sign in
-            </>
-          ) : (
-            <>
-              {data.me.name}
-              <LogOut size={15} />
-            </>
-          )}
-        </button>
+        <div className="header-actions">
+          <button
+            className="theme-trigger"
+            aria-label="Choose color theme"
+            onClick={() => {
+              setError("");
+              setModal("themes");
+            }}
+          >
+            <Palette size={19} />
+            <span>Theme</span>
+          </button>
+          <button
+            className="account"
+            onClick={() =>
+              preview
+                ? setModal("signin")
+                : act(async () => {
+                    await api("/auth/logout", {});
+                    loadSequence.current++;
+                    setState(null);
+                  })
+            }
+          >
+            {preview ? (
+              <>
+                <Lock size={15} />
+                Sign in
+              </>
+            ) : (
+              <>
+                {data.me.name}
+                <LogOut size={15} />
+              </>
+            )}
+          </button>
+        </div>
       </header>
       <main>
         <section className="hero">
@@ -521,6 +636,11 @@ function App() {
                     />
                   </div>
                   <div className="exercise-list">
+                    {historyError && (
+                      <p className="small muted" role="status">
+                        {historyError}
+                      </p>
+                    )}
                     {day.exercises.map((e, index) => {
                       const ent = entry(e),
                         variant =
@@ -545,7 +665,7 @@ function App() {
                               onClick={() =>
                                 act(async () => {
                                   const next = {
-                                    ...draft,
+                                    ...currentEntries,
                                     [e.id]: { ...ent, done: !ent.done },
                                   };
                                   setDraft(next);
@@ -575,7 +695,12 @@ function App() {
                           </div>
                           <div className="exercise-bottom">
                             <a
-                              href={variant.demo.url}
+                              href={
+                                variant.demo.url +
+                                (variant.demo.startSeconds
+                                  ? `&t=${variant.demo.startSeconds}s`
+                                  : "")
+                              }
                               target="_blank"
                               rel="noreferrer"
                             >
@@ -583,14 +708,62 @@ function App() {
                               <span>Watch {variant.demo.instructor}</span>
                               <ArrowUpRight size={13} />
                             </a>
+                            {variant.demo.caption && (
+                              <p className="demo-caption">
+                                {variant.demo.caption}
+                              </p>
+                            )}
                             <details>
                               <summary>
                                 Log sets <Plus size={13} />
                               </summary>
+                              {previous[variant.id] && (
+                                <div className="previous-sets">
+                                  <p>
+                                    Last completed ·{" "}
+                                    {dateText(previous[variant.id].date, {
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                    <span>
+                                      {previous[variant.id].sets
+                                        .map(
+                                          (set) =>
+                                            `${set.weight ?? "—"} lb × ${set.reps ?? "—"}`,
+                                        )
+                                        .join(" · ")}
+                                    </span>
+                                  </p>
+                                  <button
+                                    className="text-button"
+                                    disabled={busy || selected > today}
+                                    onClick={() =>
+                                      update(
+                                        e,
+                                        makeEntry(
+                                          variant,
+                                          previous[variant.id],
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    Use last time
+                                  </button>
+                                </div>
+                              )}
+                              {!draft[e.id] &&
+                                !log?.body[e.id] &&
+                                previous[variant.id] && (
+                                  <p className="prefill-note">
+                                    Prefilled from last time. Adjust as needed,
+                                    then check off when finished.
+                                  </p>
+                                )}
                               <div className="set-grid">
                                 <span>SET</span>
                                 <span>WEIGHT · LB</span>
                                 <span>REPS</span>
+                                <span className="copy-heading">COPY</span>
                                 {ent.sets.map((s, i) => (
                                   <React.Fragment key={i}>
                                     <span>{i + 1}</span>
@@ -602,7 +775,7 @@ function App() {
                                       max="3000"
                                       step="0.5"
                                       value={s.weight ?? ""}
-                                      disabled={selected > today}
+                                      disabled={busy || selected > today}
                                       placeholder="—"
                                       onChange={(ev) =>
                                         update(e, {
@@ -628,7 +801,7 @@ function App() {
                                       min="0"
                                       max="1000"
                                       value={s.reps ?? ""}
-                                      disabled={selected > today}
+                                      disabled={busy || selected > today}
                                       placeholder="—"
                                       onChange={(ev) =>
                                         update(e, {
@@ -647,26 +820,52 @@ function App() {
                                         })
                                       }
                                     />
+                                    {i === 0 ? (
+                                      <span />
+                                    ) : (
+                                      <button
+                                        className="copy-set"
+                                        aria-label={`Copy previous set to ${variant.name} set ${i + 1}`}
+                                        disabled={
+                                          busy ||
+                                          selected > today ||
+                                          (ent.sets[i - 1].weight === null &&
+                                            ent.sets[i - 1].reps === null)
+                                        }
+                                        onClick={() =>
+                                          update(e, copyPreviousSet(ent, i))
+                                        }
+                                      >
+                                        <Copy size={16} />
+                                      </button>
+                                    )}
                                   </React.Fragment>
                                 ))}
                               </div>
+                              <button
+                                className="text-button repeat-sets"
+                                disabled={
+                                  busy ||
+                                  selected > today ||
+                                  (ent.sets[0].weight === null &&
+                                    ent.sets[0].reps === null)
+                                }
+                                onClick={() => update(e, repeatFirstSet(ent))}
+                              >
+                                <Copy size={14} />
+                                Use set 1 for all sets
+                              </button>
                               {e.substitutions.length > 0 && (
                                 <label>
                                   Exercise variation
                                   <select
                                     value={ent.variant}
+                                    disabled={busy || selected > today}
                                     onChange={(ev) => {
                                       const v = [e, ...e.substitutions].find(
                                         (v) => v.id === ev.target.value,
                                       );
-                                      update(e, {
-                                        done: false,
-                                        variant: v.id,
-                                        sets: Array.from(
-                                          { length: v.sets },
-                                          () => ({ weight: null, reps: null }),
-                                        ),
-                                      });
+                                      update(e, makeEntry(v, previous[v.id]));
                                     }}
                                   >
                                     {[e, ...e.substitutions].map((v) => (
@@ -691,7 +890,7 @@ function App() {
                         onClick={() =>
                           act(() =>
                             persist(
-                              draft,
+                              currentEntries,
                               Boolean(log?.completed) &&
                                 completed === day.exercises.length,
                             ),
@@ -708,7 +907,7 @@ function App() {
                         completed < day.exercises.length ||
                         selected > today
                       }
-                      onClick={() => act(() => persist(draft, true))}
+                      onClick={() => act(() => persist(currentEntries, true))}
                     >
                       <CheckCircle2 size={18} />
                       {log?.completed ? "Workout complete" : "Complete workout"}
@@ -1001,11 +1200,15 @@ function App() {
       {modal && (
         <div className="modal-backdrop">
           <section
-            className="modal"
+            className={"modal " + (modal === "themes" ? "theme-modal" : "")}
             role="dialog"
             aria-modal="true"
             aria-label={
-              modal === "signin" ? "Sign in" : "Manage training group"
+              modal === "signin"
+                ? "Sign in"
+                : modal === "themes"
+                  ? "Choose color theme"
+                  : "Manage training group"
             }
           >
             {error && (
@@ -1029,6 +1232,45 @@ function App() {
                   setStatus(await api("/status"));
                 }}
               />
+            ) : modal === "themes" ? (
+              <div>
+                <p className="eyebrow">MAKE IT YOURS</p>
+                <h2>Your colors. Your choice.</h2>
+                <p className="muted">
+                  {preview
+                    ? "Try all ten themes. Your preview choice stays on this device."
+                    : "Saved to your account. Everyone picks their own theme."}
+                </p>
+                <div className="theme-options">
+                  {themes.map((option, index) => (
+                    <button
+                      key={option.id}
+                      className="theme-option"
+                      aria-pressed={theme.id === option.id}
+                      disabled={busy}
+                      onClick={() => act(() => chooseTheme(option.id))}
+                    >
+                      <span className="theme-swatches" aria-hidden="true">
+                        {[
+                          option.bg,
+                          option.surface,
+                          option.accent,
+                          option.secondary,
+                        ].map((color, index) => (
+                          <i key={index} style={{ background: color }} />
+                        ))}
+                      </span>
+                      <span>
+                        {index + 1}. {option.name}
+                      </span>
+                      {theme.id === option.id && <Check size={16} />}
+                    </button>
+                  ))}
+                </div>
+                <button className="solid full" onClick={() => setModal(null)}>
+                  Done
+                </button>
+              </div>
             ) : modal.type === "revoke" ? (
               <div>
                 <p className="eyebrow">ADMIN · MEMBER ACCESS</p>
