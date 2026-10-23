@@ -390,8 +390,16 @@ export function createApp(config = {}) {
   });
   app.put("/api/logs/:date", (req, res) => {
     const date = dateSchema.parse(req.params.date);
-    if (date > today()) fail(400, "Future workouts cannot be logged yet.");
     const data = logSchema.parse(req.body);
+    if (
+      date > today() &&
+      (data.completed ||
+        Object.values(data.entries).some((entry) => entry.done))
+    )
+      fail(
+        400,
+        "Future workouts can be planned, but cannot be checked off yet.",
+      );
     const block = db
       .prepare(
         "SELECT b.*,p.body FROM blocks b JOIN plans p ON p.key=b.plan_key WHERE b.start<=? AND b.end>=?",

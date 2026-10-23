@@ -1,7 +1,7 @@
 {
   "id": "/workout-plan/",
-  "name": "Train Together",
-  "short_name": "Train Together",
+  "name": "Train",
+  "short_name": "Train",
   "description": "Your workouts, your progress, and a little accountability. iron sharpens iron.",
   "lang": "en",
   "start_url": "/workout-plan/",
