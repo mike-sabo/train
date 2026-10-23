@@ -24,7 +24,8 @@ import {
 } from "lucide-react";
 import initialPlan from "../plans/foundation-v4.json";
 import { latestPlanVersions } from "../shared/plans.js";
-import { themes, defaultTheme, getTheme } from "../shared/themes.js";
+import { themes, getTheme } from "../shared/themes.js";
+import { applyTheme, readThemeId, rememberTheme } from "./theme.js";
 import {
   makeEntry,
   getSetLinking,
@@ -62,13 +63,9 @@ function App() {
     [previewLogs, setPreviewLogs] = useState([]),
     [history, setHistory] = useState({ context: "", entries: {} }),
     [historyError, setHistoryError] = useState(""),
-    [previewTheme, setPreviewTheme] = useState(() => {
-      try {
-        return getTheme(localStorage.getItem("tt-preview-theme")).id;
-      } catch {
-        return defaultTheme;
-      }
-    });
+    [previewTheme, setPreviewTheme] = useState(
+      () => getTheme(readThemeId()).id,
+    );
   const loadSequence = useRef(0);
   const currentWeek = useRef(week);
   currentWeek.current = week;
@@ -109,29 +106,9 @@ function App() {
     [dirty, setDirty] = useState(false);
   const theme = getTheme(state?.me.theme ?? previewTheme);
   useEffect(() => {
-    const root = document.documentElement;
-    for (const name of [
-      "bg",
-      "surface",
-      "text",
-      "muted",
-      "border",
-      "accent",
-      "secondary",
-    ]) {
-      root.style.setProperty(`--${name}`, theme[name]);
-    }
-    root.style.setProperty("--on-accent", theme.ink);
-    root.style.setProperty("--on-secondary", theme.ink);
-    root.style.setProperty(
-      "--error",
-      theme.mode === "light" ? "#A42D22" : "#FFB8AA",
-    );
-    root.style.colorScheme = theme.mode;
-    document.querySelector('meta[name="theme-color"]').content = theme.bg;
-    document.querySelector(
-      'meta[name="apple-mobile-web-app-status-bar-style"]',
-    ).content = theme.mode === "light" ? "default" : "black";
+    applyTheme(theme);
+    rememberTheme(theme.id);
+    setPreviewTheme(theme.id);
   }, [theme.id]);
   useEffect(() => {
     setDraft(log?.body ?? {});
@@ -276,9 +253,6 @@ function App() {
   async function chooseTheme(id) {
     if (preview) {
       setPreviewTheme(id);
-      try {
-        localStorage.setItem("tt-preview-theme", id);
-      } catch {}
       return;
     }
     const result = await api("/preferences", { theme: id }, "PUT");
