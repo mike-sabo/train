@@ -366,12 +366,14 @@ test("email failures do not grant access or install a code; stale invitation del
   );
 });
 
-test("workouts persist with privacy, atomic revisions, history, themes, and plan validation", async (t) => {
+test("workouts persist across devices with privacy, atomic revisions, history, themes, and plan validation", async (t) => {
   const f = await fixture(t);
   const owner = await f.login("mike@example.com");
   await f.invite(owner);
   const member = await f.login("jason@example.com");
   const block = { planKey, start: previousMonday, weeks: 8 };
+  const mobile = await f.login("jason@example.com");
+  assert.notEqual(member, mobile);
   assert.equal((await f.request("/blocks", block, member)).status, 403);
   const concurrentBlocks = await Promise.all([
     f.request("/blocks", block, owner),
@@ -414,7 +416,7 @@ test("workouts persist with privacy, atomic revisions, history, themes, and plan
   const body = { revision: 0, entries, completed: true };
   const concurrentLogs = await Promise.all([
     f.request(`/logs/${previousMonday}`, body, member, "PUT"),
-    f.request(`/logs/${previousMonday}`, body, member, "PUT"),
+    f.request(`/logs/${previousMonday}`, body, mobile, "PUT"),
   ]);
   assert.deepEqual(
     concurrentLogs.map((r) => r.status).sort(),
@@ -441,6 +443,11 @@ test("workouts persist with privacy, atomic revisions, history, themes, and plan
   ).data;
   assert.equal(memberState.logs.find((l) => l.member_id === 2).revision, 1);
   assert.equal(memberState.logs.find((l) => l.member_id === 1).body, undefined);
+  const mobileState = (
+    await f.request(`/state?week=${previousMonday}`, undefined, mobile)
+  ).data;
+  assert.equal(mobileState.me.id, memberState.me.id);
+  assert.deepEqual(mobileState.logs, memberState.logs);
   const history = (
     await f.request(
       `/history?before=${addDays(previousMonday, 7)}`,
@@ -479,6 +486,9 @@ test("workouts persist with privacy, atomic revisions, history, themes, and plan
       .status,
     400,
   );
+  assert.equal((await f.request("/auth/logout", {}, mobile)).status, 200);
+  assert.equal((await f.request("/state", undefined, mobile)).status, 401);
+  assert.equal((await f.request("/state", undefined, member)).status, 200);
   await f.request("/members/2/revoke", {}, owner);
   await f.invite(owner);
   const rejoined = await f.login("jason@example.com");

@@ -55,6 +55,8 @@ Authorization is enforced by the server, including direct API calls. Member resp
 
 `plans/foundation-v1.json` contains the exact Monday/Wednesday/Friday routine recovered from the original chat, including the optional Friday landmine squat. Version 2 replaced Friday's hack squat with leg press (3 × 8–12), keeping landmine squat available. Version 3 added dumbbell lateral raises (2 × 12–15) and leg-press calf raises (2 × 12–20) on Monday and Friday. `plans/foundation-v4.json` is the current routine: it replaces Wednesday's unavailable glute-drive machine with dumbbell Romanian deadlifts (2 × 10–12). The replacement has its own exercise ID so hip-thrust weights do not prefill deadlift sets. Earlier versions remain available for existing history. Import/export uses schema version 1. `plans/plan.schema.json` documents the JSON shape; `server/schema.js` adds validation for unique day and exercise IDs.
 
+The Plan tab shows only the latest version of each routine, so the Foundation routine appears as one plan. Earlier revisions remain available internally to resolve existing training blocks and workout history.
+
 To change routines, export a plan, edit it, increment its version, import it, and schedule a non-overlapping block. A new routine can have a new plan ID and start at version 1. Existing plan versions cannot be overwritten. Blocks point to immutable versions, and logs point to blocks. Past logs retain exercises, selected substitutions, and per-set weights and reps. New blocks can start after an existing block; shortening an active block is not implemented.
 
 Demonstrations prefer Jeff Nippard and Albert Dorner (Bertl_lifts). Exercise-specific alternatives remain where a matching preferred tutorial was not verified. Source URLs and verification notes are included in each exercise. Verification means matching title, exercise and creator metadata, plus the noted visual check; it does not guarantee future availability or certify exercise safety. The incline demonstration discusses multiple movements, including incline dumbbell pressing.
@@ -64,6 +66,8 @@ Version 3 uses Jeff Nippard for both new exercises. The lateral-raise short comp
 Version 4 uses Scott Herman's verified dumbbell Romanian deadlift tutorial as an exercise-specific alternative. The video title, creator and visible demonstration were checked on October 23, 2026.
 
 ## Faster logging and personal themes
+
+Sign in with the same invited email address on desktop and mobile to access the same saved workouts and account preferences. Each device has its own session; signing out on one leaves the other signed in. Refresh an already-open app to load another device's saves. Unsaved set edits and unsigned preview checkoffs do not sync. If two devices edit the same workout, revision checks reject a stale save instead of overwriting newer progress.
 
 Open **Log sets** to enter weight and reps. **Same for all sets** starts on for blank or matching sets: changing set 1 fills the untouched later rows automatically. Editing either field in a later row makes that entire set independent and labels it **Custom**. Turning the switch off keeps all current values and lets you enter each set separately; turning it back on fills only rows you have not customized. The switch and custom-row choices are saved with the workout and survive a reload. Automatic fill never adds sets or marks an exercise complete.
 

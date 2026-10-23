@@ -23,6 +23,7 @@ import {
   Palette,
 } from "lucide-react";
 import initialPlan from "../plans/foundation-v4.json";
+import { latestPlanVersions } from "../shared/plans.js";
 import { themes, defaultTheme, getTheme } from "../shared/themes.js";
 import {
   makeEntry,
@@ -90,10 +91,12 @@ function App() {
     ],
     logs: previewLogs,
   };
+  const currentPlans = latestPlanVersions(data.plans);
   const block = data.blocks.find(
       (b) => b.start <= selected && b.end >= selected,
     ),
-    plan = data.plans.find((p) => key(p) === block?.plan_key) ?? data.plans[0],
+    plan =
+      data.plans.find((p) => key(p) === block?.plan_key) ?? currentPlans[0],
     day =
       block &&
       plan.days.find(
@@ -1013,68 +1016,64 @@ function App() {
               <>
                 <p className="eyebrow">BUILT FOR THE LONG RUN</p>
                 <h2 className="page-title">A plan you can grow with.</h2>
-                {[...data.plans]
-                  .sort((a, b) => b.version - a.version)
-                  .map((p) => (
-                    <article className="card plan-card" key={key(p)}>
-                      <span className="pill">
-                        VERSION {p.version} · {p.weeks} WEEKS
-                      </span>
-                      <h2>{p.name}</h2>
-                      <p>{p.description}</p>
-                      {p.days.map((d) => (
-                        <details key={d.id}>
-                          <summary>
-                            {d.name}
-                            <span>{d.focus}</span>
-                            <Plus size={16} />
-                          </summary>
-                          <ol>
-                            {d.exercises.map((e) => (
-                              <li key={e.id}>
-                                {e.name}
-                                <small>
-                                  {e.sets} × {e.reps}
-                                </small>
-                              </li>
-                            ))}
-                          </ol>
-                        </details>
-                      ))}
-                      <div className="plan-actions">
+                {currentPlans.map((p) => (
+                  <article className="card plan-card" key={key(p)}>
+                    <span className="pill">{p.weeks} WEEKS</span>
+                    <h2>{p.name}</h2>
+                    <p>{p.description}</p>
+                    {p.days.map((d) => (
+                      <details key={d.id}>
+                        <summary>
+                          {d.name}
+                          <span>{d.focus}</span>
+                          <Plus size={16} />
+                        </summary>
+                        <ol>
+                          {d.exercises.map((e) => (
+                            <li key={e.id}>
+                              {e.name}
+                              <small>
+                                {e.sets} × {e.reps}
+                              </small>
+                            </li>
+                          ))}
+                        </ol>
+                      </details>
+                    ))}
+                    <div className="plan-actions">
+                      <button
+                        className="outline"
+                        onClick={() => {
+                          const url = URL.createObjectURL(
+                            new Blob([JSON.stringify(p, null, 2)], {
+                              type: "application/json",
+                            }),
+                          );
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = key(p) + ".json";
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                      >
+                        <Download size={16} />
+                        Export JSON
+                      </button>
+                      {data.me.role === "owner" && (
                         <button
-                          className="outline"
-                          onClick={() => {
-                            const url = URL.createObjectURL(
-                              new Blob([JSON.stringify(p, null, 2)], {
-                                type: "application/json",
-                              }),
-                            );
-                            const a = document.createElement("a");
-                            a.href = url;
-                            a.download = key(p) + ".json";
-                            a.click();
-                            URL.revokeObjectURL(url);
-                          }}
+                          className="solid"
+                          onClick={() =>
+                            setModal(
+                              preview ? "signin" : { type: "block", plan: p },
+                            )
+                          }
                         >
-                          <Download size={16} />
-                          Export JSON
+                          Schedule plan
                         </button>
-                        {data.me.role === "owner" && (
-                          <button
-                            className="solid"
-                            onClick={() =>
-                              setModal(
-                                preview ? "signin" : { type: "block", plan: p },
-                              )
-                            }
-                          >
-                            Schedule plan
-                          </button>
-                        )}
-                      </div>
-                    </article>
-                  ))}
+                      )}
+                    </div>
+                  </article>
+                ))}
                 {data.me.role === "owner" && (
                   <label className="upload">
                     <Upload size={18} />
