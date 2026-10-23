@@ -17,7 +17,7 @@ As checked October 23, 2026:
 
 Create a dedicated Supabase project in a **Free organization**, preferably in a US East region. Use the Supabase connector, or sign in with the Supabase CLI. Keep the database password in your password manager. Do not paste keys in chat or add them to Vite variables.
 
-The repo includes two migrations: private backend tables and API functions, followed by all three immutable workout plan versions. It does not import local preview data, send invitations, or schedule a training block automatically.
+The repo includes migrations for private backend tables and API functions, all three immutable workout plan versions, and indexes for member revocation and foreign-key checks. It does not import local preview data, send invitations, or schedule a training block automatically.
 
 ```sh
 npm ci
@@ -27,7 +27,9 @@ npx supabase@2.122.0 db push --dry-run
 npx supabase@2.122.0 db push
 ```
 
-Use a fresh dedicated project. Do not apply the initial migration to an unrelated or previously configured database, and do not reset a live database to fix migration errors. The CLI records migration history. With the connector, apply these files as named migrations so later CLI deployments recognize them.
+Use a fresh dedicated project. Do not apply the initial migration to an unrelated or previously configured database, and do not reset a live database to fix migration errors. The CLI records migration history. With the connector, apply these files as named migrations and match the local filename timestamps to the recorded remote versions so later CLI deployments recognize them.
+
+The `train` project (`swlunkwtghtbbaxigbez`) has these migrations applied. Its single owner is configured privately in the database; no training block has been scheduled. The private tables intentionally have RLS enabled without browser policies: their only caller is the server role. Supabase's informational [RLS without policies notice](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy) is expected for this design. Newly created indexes can also show [unused-index notices](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index) until real traffic uses them.
 
 ## 2. Configure email and the admin
 
@@ -43,7 +45,7 @@ Copy `.env.cloud.example` to `.env.cloud` and fill it in locally:
 | `RESEND_API_KEY` | The domain's sending API key                                             |
 | `EMAIL_FROM`     | `Train Together <train@mail.mikesabo.dev>` after that domain is verified |
 
-`.env.cloud` is ignored by Git. Supabase automatically supplies `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; do not copy these into the browser configuration. The app uses its own invite-only email-code authentication, so Supabase Auth SMTP configuration and Supabase Auth user invitations are not used.
+`.env.cloud` is ignored by Git. Supabase automatically supplies `SUPABASE_URL` and the server-side `SUPABASE_SECRET_KEYS` (with a legacy `SUPABASE_SERVICE_ROLE_KEY` fallback); do not copy these into the browser configuration. The app uses its own invite-only email-code authentication, so Supabase Auth SMTP configuration and Supabase Auth user invitations are not used.
 
 ```sh
 npx supabase@2.122.0 secrets set --env-file .env.cloud
@@ -51,7 +53,7 @@ npm run build:edge
 npx supabase@2.122.0 functions deploy train-together
 ```
 
-The function URL is `https://YOUR_PROJECT_REF.supabase.co/functions/v1/train-together`. The deployment config sets `verify_jwt=false` because the function checks its own hashed session tokens in PostgreSQL. Only this server-side service role may execute `tt_rpc`; anonymous and authenticated Supabase roles have no access to it or the private tables. There is no public first-run admin signup. Changing `OWNER_EMAIL` cannot promote a member or replace the existing owner.
+The function URL is `https://YOUR_PROJECT_REF.supabase.co/functions/v1/train-together`. The deployment config sets `verify_jwt=false` because the function checks its own hashed session tokens in PostgreSQL. Only this server-side service role may execute `tt_rpc`, which runs with the caller’s permissions; anonymous and authenticated Supabase roles have no access to it or the private tables. There is no public first-run admin signup. Changing `OWNER_EMAIL` cannot promote a member or replace the existing owner.
 
 Cross-site cookies are avoided so sign-in works on iPhone. Hosted sessions use opaque bearer tokens stored in that browser's local storage; only their SHA-256 hashes are stored in PostgreSQL. Tokens expire after 30 days. Signing out or removing a member invalidates their session immediately on the server. Browser code renders user text through React and does not load third-party scripts. The local Node/SQLite app continues using HTTP-only cookies.
 

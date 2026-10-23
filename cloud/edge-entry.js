@@ -1,4 +1,5 @@
 import { createHostedHandler } from "./handler.js";
+import { databaseHeaders } from "./database-headers.js";
 
 function required(name) {
   const value = Deno.env.get(name);
@@ -7,7 +8,7 @@ function required(name) {
   return value;
 }
 const supabaseUrl = required("SUPABASE_URL");
-const serviceKey = required("SUPABASE_SERVICE_ROLE_KEY");
+const serviceHeaders = databaseHeaders((name) => Deno.env.get(name));
 const mailKey = required("RESEND_API_KEY");
 const mailFrom = required("EMAIL_FROM");
 
@@ -19,11 +20,7 @@ Deno.serve(
     async rpc(action, payload = {}, session = "", ip = "") {
       const response = await fetch(`${supabaseUrl}/rest/v1/rpc/tt_rpc`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-        },
+        headers: serviceHeaders,
         body: JSON.stringify({
           p_action: action,
           p_payload: payload,

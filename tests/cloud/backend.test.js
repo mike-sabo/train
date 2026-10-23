@@ -31,20 +31,28 @@ async function fixture(t) {
   );
   for (const role of ["anon", "authenticated", "service_role"]) {
     await db.query(
-      `do $$ begin if not exists(select from pg_roles where rolname='${role}') then create role ${role}; end if; end $$`,
+      `do $$ begin if not exists(select from pg_roles where rolname='${role}') then create role ${role} ${role === "service_role" ? "bypassrls" : ""}; end if; end $$`,
     );
   }
   for (const file of readdirSync("supabase/migrations").sort())
     await db.query(readFileSync(`supabase/migrations/${file}`, "utf8"));
-  const rpc = async (action, payload = {}, session = "", ip = "") =>
-    (
-      await db.query("select public.tt_rpc($1,$2,$3,$4) as result", [
-        action,
-        payload,
-        session,
-        ip,
-      ])
-    ).rows[0].result;
+  const rpc = async (action, payload = {}, session = "", ip = "") => {
+    const client = await db.connect();
+    try {
+      await client.query("set role service_role");
+      return (
+        await client.query("select public.tt_rpc($1,$2,$3,$4) as result", [
+          action,
+          payload,
+          session,
+          ip,
+        ])
+      ).rows[0].result;
+    } finally {
+      await client.query("reset role");
+      client.release();
+    }
+  };
   const mail = [];
   let onMail;
   const options = {

@@ -78,7 +78,7 @@ $$;
 -- writes so concurrent devices cannot overwrite revisions or bypass limits.
 -- Expected errors return values instead of exceptions so failed attempts commit.
 create function public.tt_rpc(p_action text, p_payload jsonb default '{}', p_session text default '', p_ip text default '')
-returns jsonb language plpgsql security definer set search_path='' as $$
+returns jsonb language plpgsql security invoker set search_path='' as $$
 declare
   now_ms bigint := floor(extract(epoch from clock_timestamp())*1000);
   m tt_private.members%rowtype;
@@ -307,3 +307,9 @@ $$;
 revoke all on all functions in schema tt_private from public, anon, authenticated;
 revoke all on function public.tt_rpc(text,jsonb,text,text) from public, anon, authenticated;
 grant execute on function public.tt_rpc(text,jsonb,text,text) to service_role;
+-- The server role receives access only to the app's own database objects.
+-- The API runs as its caller rather than inheriting the migration owner's rights.
+grant usage on schema tt_private to service_role;
+grant select, insert, update, delete on all tables in schema tt_private to service_role;
+grant usage on all sequences in schema tt_private to service_role;
+grant execute on all functions in schema tt_private to service_role;
