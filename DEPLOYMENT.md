@@ -1,8 +1,10 @@
 # GitHub Pages and the free backend
 
-The React website runs on GitHub Pages at the proposed address `https://train.mikesabo.dev/`. Supabase Free provides PostgreSQL and an Edge Function. Resend Free delivers invitations and six-digit sign-in codes. Your existing `mikesabo.dev` website remains in its current repository.
+The React website uses GitHub Pages at `https://train.mikesabo.dev/`. Supabase Free provides PostgreSQL and an Edge Function. Resend Free delivers invitations and six-digit sign-in codes. Your existing `mikesabo.dev` website remains in its current repository.
 
 The source can be public without exposing accounts or workout records. The frontend contains only the public API URL. Database credentials, the service-role key, the admin email, and the email API key are never bundled into the website or committed to Git.
+
+The initial Pages deployment is live with a valid certificate and HTTPS enforcement. The production manifest uses `/` for its start URL and scope; the app icons, mobile layout, and Home Screen guide were checked on the deployed site. Mike still needs to sign in, schedule the first training block, and invite members through the app.
 
 ## Costs and limits
 
@@ -33,7 +35,9 @@ The `train` project (`swlunkwtghtbbaxigbez`) has these migrations applied. Its s
 
 ## 2. Configure email and the admin
 
-Create a Resend Free account, add a sending domain such as `mail.mikesabo.dev`, and add the exact verification DNS records Resend provides at Porkbun. Preserve any existing mail records; use the sending subdomain to keep this configuration separate. Wait for verification, then create a sending API key restricted to that domain.
+The sending domain `mail.mikesabo.dev` is verified in Resend. Its three DNS records were added at Porkbun, and a sending-only API key restricted to that domain is saved as `RESEND_API_KEY` in the `train` project's encrypted Edge Function secrets. The live backend passed its access check and Resend confirmed delivery of a test sign-in email on October 23, 2026. The API key is not stored in GitHub or the local environment file.
+
+For a new deployment, create a Resend Free account, add a sending domain, and add the exact verification DNS records Resend provides at your DNS provider. Preserve existing mail records by using a separate sending subdomain. Wait for verification, then create a sending API key restricted to that domain.
 
 Copy `.env.cloud.example` to `.env.cloud` and fill it in locally:
 
@@ -74,9 +78,9 @@ Set these **Actions repository variables**, not secrets:
 | `APP_ORIGIN`     | `https://train.mikesabo.dev`                                            |
 | `VITE_BASE_PATH` | `/`                                                                     |
 | `VITE_API_URL`   | The complete function URL above, with no trailing slash                 |
-| `PAGES_ENABLED`  | Set to `true` only when the backend, email, domain, and HTTPS are ready |
+| `PAGES_ENABLED`  | Set to `true` after the backend, email, and custom-domain DNS are verified |
 
-The workflow tests both backends, builds the website and function, checks that the live API accepts the website origin and requires authentication, and then publishes the static website. Until `PAGES_ENABLED=true`, pushes run checks without publishing. The public Pages job has no database or email credentials.
+The workflow tests both backends, builds the website and function, checks that the live API accepts the website origin and requires authentication, and then publishes the static website. Until `PAGES_ENABLED=true`, pushes run checks without publishing. After the initial deployment, verify the custom-domain certificate and enable HTTPS enforcement before sharing the site for use. The public Pages job has no database or email credentials.
 
 Run **Check and publish Train Together** manually after configuring the variables, or push a reviewed change to `develop`. Future frontend changes publish from `develop`. Backend changes require the migration and function deployment commands above before publishing a frontend that depends on them.
 

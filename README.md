@@ -1,6 +1,6 @@
 # Train Together
 
-A mobile-first React workout tracker for Mike, Jason, and invited friends. Charcoal and orange, personal checkoffs, group accountability, and “Iron sharpens iron.” — Proverbs 27:17.
+A mobile-first React workout tracker for Mike, Jason, and invited friends. Charcoal and orange, personal checkoffs, group accountability, and “iron sharpens iron.” — Proverbs 27:17.
 
 ## Run locally
 
@@ -31,7 +31,7 @@ Resend's free transactional plan supports a small invite-only group. Keep the ac
 
 Email codes expire after 10 minutes, allow at most five guesses, and are consumed after successful use. Requests are rate limited in SQLite, so restarting the server does not reset the limits. Every workout write derives its member ID from the session.
 
-Sources: https://resend.com/pricing and https://resend.com/blog/new-free-tier (checked October 22, 2026). Sending has not been tested against a live Resend account; credentials and DNS are required.
+Sources: https://resend.com/pricing and https://resend.com/blog/new-free-tier (checked October 22, 2026). On October 23, the hosted backend successfully sent a sign-in code through Resend, which confirmed delivery. The verified sending domain is `mail.mikesabo.dev`; its sending-only API key is stored in Supabase's encrypted secrets.
 
 ## Admin and member access
 
@@ -69,7 +69,7 @@ Last-workout values still load before editing. If they differ across sets, the s
 
 For a new exercise entry, the app prefills values from that member's latest earlier completed occurrence of the same exercise and variation. The lookup matches the exercise ID and name across plan versions. Leg presses, calf raises, and landmine squats retain separate histories. **Last completed** shows the source date and values, and **Use last time** restores them explicitly. Existing saved entries and edits already in progress take precedence. Prefills do not mark exercises or workouts complete, and uncompleted suggestions are excluded from subsequent history lookups. If a later plan adds sets, unmatched extra rows start blank.
 
-The palette button in the header opens ten themes, including two light options. A signed-in user's selection is saved in SQLite and restored on other devices when they load their account. Changing themes does not alter workout edits or anyone else's preferences. The unsigned preview remembers a separate device-local choice. Theme changes and previous-set lookups require an active invitation and are scoped to the signed-in member.
+The palette button in the header opens ten themes, including two light options. A signed-in user's selection is saved in the database and restored on other devices when they load their account. Changing themes does not alter workout edits or anyone else's preferences. The unsigned preview remembers a separate device-local choice. Theme changes and previous-set lookups require an active invitation and are scoped to the signed-in member.
 
 ## Add to your phone
 
@@ -84,7 +84,7 @@ Install guidance: [Apple](https://support.apple.com/guide/iphone/iphea86e5236/io
 
 ## Hosting
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the prepared GitHub Pages + Supabase Free + Resend Free deployment, with `train.mikesabo.dev` as the proposed address. The hosted backend preserves invitation-only access, Mike's sole admin role, personal logs, all plan versions, and immediate revocation. Repository variables select the API URL and website base path. The deployment workflow does not publish until the real backend is configured and passes its access check.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the GitHub Pages + Supabase Free + Resend Free deployment at `https://train.mikesabo.dev/`. The hosted backend preserves invitation-only access, Mike's sole admin role, personal logs, all plan versions, and immediate revocation. Repository variables select the API URL and website base path. Publishing is enabled; every deployment must pass tests and a live backend access check.
 
 Local development still uses Node and SQLite at `/workout-plan/`. The SQLite database contains local accounts, invitations, sessions, challenges, rate limits, plans, blocks, and workouts in `data/train-together.sqlite`. Keep that directory private and out of Git. No preview data is automatically copied to Supabase.
 
