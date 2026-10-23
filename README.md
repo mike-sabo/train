@@ -35,7 +35,7 @@ Sources: https://resend.com/pricing and https://resend.com/blog/new-free-tier (c
 
 ## Plans and history
 
-`plans/foundation-v1.json` contains the exact Monday/Wednesday/Friday routine recovered from the original chat, including the optional Friday landmine squat. Import/export uses schema version 1. `plans/plan.schema.json` documents the JSON shape; `server/schema.js` adds validation for unique day and exercise IDs.
+`plans/foundation-v1.json` contains the exact Monday/Wednesday/Friday routine recovered from the original chat, including the optional Friday landmine squat. `plans/foundation-v2.json` is the current routine: Friday uses leg press (3 × 8–12) because the YMCA has no hack squat machine, with landmine squat still available. Version 1 remains available for existing history. Import/export uses schema version 1. `plans/plan.schema.json` documents the JSON shape; `server/schema.js` adds validation for unique day and exercise IDs.
 
 To change routines, export a plan, edit it, increment its version, import it, and schedule a non-overlapping block. A new routine can have a new plan ID and start at version 1. Existing plan versions cannot be overwritten. Blocks point to immutable versions, and logs point to blocks. Past logs retain exercises, selected substitutions, and per-set weights and reps. New blocks can start after an existing block; shortening an active block is not implemented.
 

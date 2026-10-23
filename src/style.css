@@ -1129,3 +1129,17 @@ footer span {
     scroll-behavior: auto !important;
   }
 }
+
+.scripture {
+  margin: 10px 0 8px;
+  max-width: 480px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+@media (max-width: 700px) {
+  .scripture {
+    font-size: 12px;
+    max-width: 310px;
+  }
+}

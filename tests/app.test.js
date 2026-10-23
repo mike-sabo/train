@@ -228,14 +228,14 @@ test("workouts are durable, scoped to the signed-in member, and preserve plan ve
     jason,
     "PUT",
   );
-  const next = { ...plan, version: 2, name: "Next block" };
+  const next = { ...plan, version: 3, name: "Next block" };
   assert.equal((await request("/plans", next, owner)).status, 200);
   assert.equal((await request("/plans", next, owner)).status, 409);
   assert.equal(
     (
       await request(
         "/blocks",
-        { planKey: `${plan.id}@2`, start: addDays(date, 56), weeks: 6 },
+        { planKey: `${plan.id}@3`, start: addDays(date, 56), weeks: 6 },
         owner,
       )
     ).status,
@@ -268,7 +268,7 @@ test("workouts are durable, scoped to the signed-in member, and preserve plan ve
   second.locals.db.close();
   assert.equal(
     app.locals.db.prepare("SELECT COUNT(*) AS count FROM plans").get().count,
-    2,
+    3,
   );
 });
 test("production refuses development authentication and unconfigured owners", () => {

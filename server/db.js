@@ -14,17 +14,16 @@ export function database(path) {
  CREATE TABLE IF NOT EXISTS limits(key TEXT PRIMARY KEY,count INTEGER NOT NULL,expires INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS challenges(email TEXT PRIMARY KEY,code_hash TEXT NOT NULL,expires INTEGER NOT NULL,attempts INTEGER NOT NULL DEFAULT 0);
  `);
-  const plan = planSchema.parse(
-    JSON.parse(
-      readFileSync(
-        new URL("../plans/foundation-v1.json", import.meta.url),
-        "utf8",
+  for (const file of ["foundation-v1.json", "foundation-v2.json"]) {
+    const plan = planSchema.parse(
+      JSON.parse(
+        readFileSync(new URL(`../plans/${file}`, import.meta.url), "utf8"),
       ),
-    ),
-  );
-  db.prepare("INSERT OR IGNORE INTO plans VALUES (?,?)").run(
-    `${plan.id}@${plan.version}`,
-    JSON.stringify(plan),
-  );
+    );
+    db.prepare("INSERT OR IGNORE INTO plans VALUES (?,?)").run(
+      `${plan.id}@${plan.version}`,
+      JSON.stringify(plan),
+    );
+  }
   return db;
 }

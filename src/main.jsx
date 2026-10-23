@@ -21,7 +21,7 @@ import {
   Mail,
   CheckCircle2,
 } from "lucide-react";
-import initialPlan from "../plans/foundation-v1.json";
+import initialPlan from "../plans/foundation-v2.json";
 import "./style.css";
 const key = (p) => `${p.id}@${p.version}`;
 const iso = (d) =>
@@ -315,9 +315,19 @@ function App() {
           <div>
             <p className="eyebrow">STRENGTH. CONSISTENCY. FELLOWSHIP.</p>
             <h1>
-              Iron sharpens iron<span>.</span>
+              iron sharpens iron<span>.</span>
             </h1>
-            <p className="verse">Proverbs 27:17</p>
+            <blockquote className="scripture">
+              “Iron sharpens iron, and one man sharpens another.”
+            </blockquote>
+            <a
+              className="verse"
+              href="https://www.esv.org/verses/Proverbs+27:17/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Proverbs 27:17 · ESV
+            </a>
           </div>
           <div className="schedule">
             <Clock size={16} />
@@ -735,66 +745,68 @@ function App() {
               <>
                 <p className="eyebrow">BUILT FOR THE LONG RUN</p>
                 <h2 className="page-title">A plan you can grow with.</h2>
-                {data.plans.map((p) => (
-                  <article className="card plan-card" key={key(p)}>
-                    <span className="pill">
-                      VERSION {p.version} · {p.weeks} WEEKS
-                    </span>
-                    <h2>{p.name}</h2>
-                    <p>{p.description}</p>
-                    {p.days.map((d) => (
-                      <details key={d.id}>
-                        <summary>
-                          {d.name}
-                          <span>{d.focus}</span>
-                          <Plus size={16} />
-                        </summary>
-                        <ol>
-                          {d.exercises.map((e) => (
-                            <li key={e.id}>
-                              {e.name}
-                              <small>
-                                {e.sets} × {e.reps}
-                              </small>
-                            </li>
-                          ))}
-                        </ol>
-                      </details>
-                    ))}
-                    <div className="plan-actions">
-                      <button
-                        className="outline"
-                        onClick={() => {
-                          const url = URL.createObjectURL(
-                            new Blob([JSON.stringify(p, null, 2)], {
-                              type: "application/json",
-                            }),
-                          );
-                          const a = document.createElement("a");
-                          a.href = url;
-                          a.download = key(p) + ".json";
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                      >
-                        <Download size={16} />
-                        Export JSON
-                      </button>
-                      {data.me.role === "owner" && (
+                {[...data.plans]
+                  .sort((a, b) => b.version - a.version)
+                  .map((p) => (
+                    <article className="card plan-card" key={key(p)}>
+                      <span className="pill">
+                        VERSION {p.version} · {p.weeks} WEEKS
+                      </span>
+                      <h2>{p.name}</h2>
+                      <p>{p.description}</p>
+                      {p.days.map((d) => (
+                        <details key={d.id}>
+                          <summary>
+                            {d.name}
+                            <span>{d.focus}</span>
+                            <Plus size={16} />
+                          </summary>
+                          <ol>
+                            {d.exercises.map((e) => (
+                              <li key={e.id}>
+                                {e.name}
+                                <small>
+                                  {e.sets} × {e.reps}
+                                </small>
+                              </li>
+                            ))}
+                          </ol>
+                        </details>
+                      ))}
+                      <div className="plan-actions">
                         <button
-                          className="solid"
-                          onClick={() =>
-                            setModal(
-                              preview ? "signin" : { type: "block", plan: p },
-                            )
-                          }
+                          className="outline"
+                          onClick={() => {
+                            const url = URL.createObjectURL(
+                              new Blob([JSON.stringify(p, null, 2)], {
+                                type: "application/json",
+                              }),
+                            );
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = key(p) + ".json";
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
                         >
-                          Schedule plan
+                          <Download size={16} />
+                          Export JSON
                         </button>
-                      )}
-                    </div>
-                  </article>
-                ))}
+                        {data.me.role === "owner" && (
+                          <button
+                            className="solid"
+                            onClick={() =>
+                              setModal(
+                                preview ? "signin" : { type: "block", plan: p },
+                              )
+                            }
+                          >
+                            Schedule plan
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  ))}
                 {data.me.role === "owner" && (
                   <label className="upload">
                     <Upload size={18} />
