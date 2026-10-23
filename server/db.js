@@ -14,6 +14,20 @@ export function database(path) {
  CREATE TABLE IF NOT EXISTS limits(key TEXT PRIMARY KEY,count INTEGER NOT NULL,expires INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS challenges(email TEXT PRIMARY KEY,code_hash TEXT NOT NULL,expires INTEGER NOT NULL,attempts INTEGER NOT NULL DEFAULT 0);
  `);
+  // Existing accounts remain active when upgrading an older database.
+  const memberColumns = db.prepare("PRAGMA table_info(members)").all();
+  if (!memberColumns.some((column) => column.name === "removed_at")) {
+    db.exec("ALTER TABLE members ADD COLUMN removed_at INTEGER");
+  }
+  if (!memberColumns.some((column) => column.name === "access_version")) {
+    db.exec(
+      "ALTER TABLE members ADD COLUMN access_version INTEGER NOT NULL DEFAULT 0",
+    );
+  }
+  // A configuration mistake must never create a second administrator.
+  db.exec(
+    "CREATE UNIQUE INDEX IF NOT EXISTS single_owner ON members(role) WHERE role='owner'",
+  );
   for (const file of ["foundation-v1.json", "foundation-v2.json"]) {
     const plan = planSchema.parse(
       JSON.parse(

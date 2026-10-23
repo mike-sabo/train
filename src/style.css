@@ -1143,3 +1143,56 @@ footer span {
     max-width: 310px;
   }
 }
+
+.member-info strong small.admin-badge {
+  color: var(--accent);
+  background: #44372c;
+}
+.member-email {
+  overflow-wrap: anywhere;
+}
+.member-action {
+  padding: 0;
+  margin-top: 8px;
+  color: #e0b7a0;
+  font-size: 11px;
+  text-align: left;
+}
+.permissions-note {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+.permissions-note p {
+  margin-top: 6px;
+  color: var(--muted);
+}
+.removed-members {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+.removed-members summary {
+  padding: 16px 0;
+  cursor: pointer;
+  min-height: 44px;
+}
+.removed-member {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+}
+.removed-member > div {
+  min-width: 0;
+}
+.removed-member p,
+.removed-member small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.removed-member button {
+  flex-shrink: 0;
+}

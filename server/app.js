@@ -29,10 +29,28 @@ export function createApp(config = {}) {
     config.dbPath ?? process.env.DB_PATH ?? "data/train-together.sqlite",
   );
   if (ownerEmail) {
-    emailSchema.parse(ownerEmail);
+    const email = emailSchema.parse(ownerEmail);
+    const existingOwner = db
+      .prepare("SELECT email FROM members WHERE role='owner'")
+      .get();
+    if (existingOwner && existingOwner.email !== email) {
+      db.close();
+      throw new Error(
+        "OWNER_EMAIL differs from the existing admin. Update the configuration to use the existing admin email.",
+      );
+    }
+    const existingMember = db
+      .prepare("SELECT role FROM members WHERE email=?")
+      .get(email);
+    if (existingMember && existingMember.role !== "owner") {
+      db.close();
+      throw new Error(
+        "OWNER_EMAIL belongs to a member and cannot grant admin access.",
+      );
+    }
     db.prepare(
       "INSERT OR IGNORE INTO members(name,email,role) VALUES ('Mike',?,'owner')",
-    ).run(emailSchema.parse(ownerEmail));
+    ).run(email);
   }
   const app = express();
   app.disable("x-powered-by");
@@ -61,7 +79,9 @@ export function createApp(config = {}) {
     ).run(key, 1, now + ms);
   }
   const getMember = (email) =>
-    db.prepare("SELECT * FROM members WHERE email=?").get(email);
+    db
+      .prepare("SELECT * FROM members WHERE email=? AND removed_at IS NULL")
+      .get(email);
   async function sendEmail(email, subject, text) {
     if (emailMode === "development") return;
     limit(
@@ -108,7 +128,7 @@ export function createApp(config = {}) {
       token &&
       db
         .prepare(
-          "SELECT m.* FROM members m JOIN sessions s ON s.member_id=m.id WHERE s.token=? AND s.expires>?",
+          "SELECT m.* FROM members m JOIN sessions s ON s.member_id=m.id WHERE s.token=? AND s.expires>? AND m.removed_at IS NULL",
         )
         .get(hash(token), Date.now());
     if (!req.member)
@@ -117,11 +137,10 @@ export function createApp(config = {}) {
   }
   function owner(req, res, next) {
     if (req.member.role !== "owner")
-      return res
-        .status(403)
-        .json({
-          error: "Only Mike’s owner account can manage invitations and plans.",
-        });
+      return res.status(403).json({
+        error:
+          "Only Mike’s admin account can manage members, plans, and training blocks.",
+      });
     next();
   }
   app.get("/api/status", (_req, res) =>
@@ -145,13 +164,22 @@ export function createApp(config = {}) {
     const email = emailSchema.parse(req.body.email);
     limit(`send-ip:${req.socket.remoteAddress}`, 15, 3600000);
     limit(`send:${email}`, 3, 600000);
-    if (!getMember(email)) return res.json({ ok: true });
+    const invitedMember = getMember(email);
+    if (!invitedMember) return res.json({ ok: true });
     const code = String(randomInt(100000, 1000000));
     await sendEmail(
       email,
       "Your Train Together sign-in code",
       `Your code is ${code}. It expires in 10 minutes. If you did not request it, ignore this email.`,
     );
+    // A delayed email must not restore a code after access was revoked or reissued.
+    const currentMember = getMember(email);
+    if (
+      !currentMember ||
+      currentMember.access_version !== invitedMember.access_version
+    ) {
+      return res.json({ ok: true });
+    }
     db.prepare(
       "INSERT OR REPLACE INTO challenges(email,code_hash,expires,attempts) VALUES (?,?,?,0)",
     ).run(email, hash(code), Date.now() + 600000);
@@ -202,13 +230,27 @@ export function createApp(config = {}) {
   app.get("/api/state", (req, res) => {
     const week = dateSchema.parse(req.query.week ?? today());
     const end = addDays(week, 6);
-    const members = db.prepare("SELECT id,name,role,joined FROM members").all();
+    const isOwner = req.member.role === "owner";
+    const members = db
+      .prepare(
+        isOwner
+          ? "SELECT id,name,email,role,joined,removed_at FROM members"
+          : "SELECT id,name,role,joined FROM members WHERE removed_at IS NULL",
+      )
+      .all();
     const logs = db
       .prepare(
-        "SELECT member_id,date,block_id,day_id,body,completed,revision FROM logs WHERE date BETWEEN ? AND ?",
+        `SELECT l.member_id,l.date,l.block_id,l.day_id,l.body,l.completed,l.revision
+         FROM logs l JOIN members m ON m.id=l.member_id
+         WHERE l.date BETWEEN ? AND ? ${isOwner ? "" : "AND m.removed_at IS NULL"}`,
       )
       .all(week, end)
-      .map((l) => ({ ...l, body: JSON.parse(l.body) }));
+      .map((l) => {
+        if (isOwner || l.member_id === req.member.id)
+          return { ...l, body: JSON.parse(l.body) };
+        // Group accountability does not expose another member's weights or reps.
+        return { member_id: l.member_id, date: l.date, completed: l.completed };
+      });
     res.json({
       me: { id: req.member.id, name: req.member.name, role: req.member.role },
       members,
@@ -223,22 +265,69 @@ export function createApp(config = {}) {
   app.post("/api/invites", owner, async (req, res) => {
     const { email, name } = z
       .object({ email: emailSchema, name: z.string().trim().min(1).max(60) })
+      .strict()
       .parse(req.body);
-    if (getMember(email)) fail(409, "That email address is already invited.");
+    const previous = db
+      .prepare("SELECT * FROM members WHERE email=?")
+      .get(email);
+    if (previous && previous.removed_at === null)
+      fail(409, "That email address is already invited.");
     await sendEmail(
       email,
       "You’re invited to Train Together",
       `Mike has invited you to Train Together. Accept your invitation by signing in with this email address at ${origin}/workout-plan/. We will email you a verification code. Iron sharpens iron. — Proverbs 27:17`,
     );
-    db.prepare(
-      "INSERT INTO members(name,email,role) VALUES (?,?,'member')",
-    ).run(name, email);
+    if (previous) {
+      const result = db
+        .prepare(
+          `UPDATE members SET name=?,removed_at=NULL,joined=NULL,access_version=access_version+1
+        WHERE id=? AND role='member' AND removed_at IS NOT NULL AND access_version=?`,
+        )
+        .run(name, previous.id, previous.access_version);
+      if (!result.changes)
+        fail(
+          409,
+          "This invitation changed. Refresh the group before trying again.",
+        );
+    } else {
+      const result = db
+        .prepare(
+          "INSERT OR IGNORE INTO members(name,email,role) VALUES (?,?,'member')",
+        )
+        .run(name, email);
+      if (!result.changes) fail(409, "That email address is already invited.");
+    }
     res.json({
       ok: true,
       message:
         emailMode === "development"
           ? `${name} is invited locally. No email was sent in development mode.`
           : `Invitation emailed to ${name}.`,
+    });
+  });
+  app.post("/api/members/:id/revoke", owner, (req, res) => {
+    const id = z.coerce.number().int().positive().parse(req.params.id);
+    const member = db.prepare("SELECT * FROM members WHERE id=?").get(id);
+    if (!member) fail(404, "Member not found.");
+    if (member.role === "owner")
+      fail(403, "The admin account cannot be removed.");
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.prepare(
+        "UPDATE members SET removed_at=COALESCE(removed_at,?),access_version=access_version+1 WHERE id=?",
+      ).run(Date.now(), id);
+      db.prepare("DELETE FROM sessions WHERE member_id=?").run(id);
+      db.prepare("DELETE FROM challenges WHERE email=?").run(member.email);
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+    res.json({
+      ok: true,
+      message: member.joined
+        ? `${member.name} has been removed. Access is revoked and workout history is preserved.`
+        : `${member.name}’s invitation has been revoked.`,
     });
   });
   app.post("/api/plans", owner, (req, res) => {
@@ -349,13 +438,11 @@ export function createApp(config = {}) {
       return res
         .status(400)
         .json({ error: err.issues.map((i) => i.message).join(" ") });
-    res
-      .status(err.status ?? 500)
-      .json({
-        error: err.status
-          ? err.message
-          : "Something went wrong. Please try again.",
-      });
+    res.status(err.status ?? 500).json({
+      error: err.status
+        ? err.message
+        : "Something went wrong. Please try again.",
+    });
   });
   return app;
 }

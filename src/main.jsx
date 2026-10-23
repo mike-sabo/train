@@ -124,6 +124,10 @@ function App() {
     try {
       await fn();
     } catch (e) {
+      if (e.status === 401) {
+        setState(null);
+        setModal("signin");
+      }
       setError(e.message);
     } finally {
       setBusy(false);
@@ -212,48 +216,74 @@ function App() {
           Invite only
         </span>
       </div>
-      {data.members.map((m) => {
-        const count = weekLogs.filter(
-          (l) => l.member_id === m.id && l.completed,
-        ).length;
-        return (
-          <div className="member" key={m.id}>
-            <div className={"avatar " + (m.id === data.me.id ? "orange" : "")}>
-              {m.name.charAt(0)}
-            </div>
-            <div className="member-info">
-              <strong>
-                {m.name} {m.id === data.me.id && <small>You</small>}
-              </strong>
-              <p>
-                {!m.joined
-                  ? "Invitation pending"
-                  : `${count} of ${trainingDays.length} workouts this week`}
-              </p>
-              <div className="mini-week">
-                {trainingDays.map((s) => (
-                  <span
-                    key={s.date}
-                    className={
-                      weekLogs.some(
-                        (l) =>
-                          l.member_id === m.id &&
-                          l.date === s.date &&
-                          l.completed,
-                      )
-                        ? "done"
-                        : ""
-                    }
-                  >
-                    {dateText(s.date, { weekday: "short" })}
-                    <i />
-                  </span>
-                ))}
+      {data.members
+        .filter((m) => m.removed_at == null)
+        .map((m) => {
+          const count = weekLogs.filter(
+            (l) => l.member_id === m.id && l.completed,
+          ).length;
+          return (
+            <div className="member" key={m.id}>
+              <div
+                className={"avatar " + (m.id === data.me.id ? "orange" : "")}
+              >
+                {m.name.charAt(0)}
+              </div>
+              <div className="member-info">
+                <strong>
+                  {m.name} {m.id === data.me.id && <small>You</small>}
+                  <small className={m.role === "owner" ? "admin-badge" : ""}>
+                    {m.role === "owner" ? "Admin" : "Member"}
+                  </small>
+                </strong>
+                <p>
+                  {!m.joined
+                    ? "Invitation pending"
+                    : `${count} of ${trainingDays.length} workouts this week`}
+                </p>
+                {tab === "Group" && m.email && (
+                  <p className="member-email">{m.email}</p>
+                )}
+                <div className="mini-week">
+                  {trainingDays.map((s) => (
+                    <span
+                      key={s.date}
+                      className={
+                        weekLogs.some(
+                          (l) =>
+                            l.member_id === m.id &&
+                            l.date === s.date &&
+                            l.completed,
+                        )
+                          ? "done"
+                          : ""
+                      }
+                    >
+                      {dateText(s.date, { weekday: "short" })}
+                      <i />
+                    </span>
+                  ))}
+                </div>
+                {tab === "Group" &&
+                  data.me.role === "owner" &&
+                  m.role !== "owner" && (
+                    <button
+                      className="member-action"
+                      disabled={busy}
+                      onClick={() => {
+                        setError("");
+                        setModal(
+                          preview ? "signin" : { type: "revoke", member: m },
+                        );
+                      }}
+                    >
+                      {m.joined ? "Remove member" : "Revoke invitation"}
+                    </button>
+                  )}
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
       {data.me.role === "owner" && (
         <button
           className="outline full"
@@ -262,6 +292,48 @@ function App() {
           <Plus size={17} />
           Invite someone
         </button>
+      )}
+      {tab === "Group" &&
+        data.me.role === "owner" &&
+        data.members.some((m) => m.removed_at != null) && (
+          <details className="removed-members">
+            <summary>Removed members & revoked invitations</summary>
+            {data.members
+              .filter((m) => m.removed_at != null)
+              .map((m) => (
+                <div className="removed-member" key={m.id}>
+                  <div>
+                    <strong>{m.name}</strong>
+                    <p className="member-email">{m.email}</p>
+                    <small>Access revoked · history retained</small>
+                  </div>
+                  <button
+                    className="outline"
+                    disabled={busy}
+                    onClick={() => {
+                      setError("");
+                      setModal({ type: "invite", member: m });
+                    }}
+                  >
+                    Invite again
+                  </button>
+                </div>
+              ))}
+          </details>
+        )}
+      {tab === "Group" && (
+        <div className="permissions-note">
+          <strong>
+            {data.me.role === "owner"
+              ? "You’re the admin."
+              : "Your member access"}
+          </strong>
+          <p>
+            {data.me.role === "owner"
+              ? "Only you can invite or remove people, import plans, and schedule training blocks. Your admin account cannot be removed."
+              : "Log your own workouts, view the plan, and follow the group’s completion. Mike manages invitations and plans. Your detailed set logs are visible to you and Mike."}
+          </p>
+        </div>
       )}
       <p className="muted small">A little accountability goes a long way.</p>
     </>
@@ -957,7 +1029,51 @@ function App() {
                   setStatus(await api("/status"));
                 }}
               />
-            ) : modal === "invite" ? (
+            ) : modal.type === "revoke" ? (
+              <div>
+                <p className="eyebrow">ADMIN · MEMBER ACCESS</p>
+                <h2>
+                  {modal.member.joined
+                    ? `Remove ${modal.member.name}?`
+                    : `Revoke ${modal.member.name}’s invitation?`}
+                </h2>
+                <p className="muted">
+                  Their access ends immediately, including existing sign-ins and
+                  unused codes. Workout history stays saved. You can invite them
+                  again later.
+                </p>
+                <div className="plan-actions">
+                  <button
+                    className="outline"
+                    disabled={busy}
+                    onClick={() => setModal(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="solid"
+                    disabled={busy}
+                    onClick={() =>
+                      act(async () => {
+                        const result = await api(
+                          `/members/${modal.member.id}/revoke`,
+                          {},
+                        );
+                        await load();
+                        setModal(null);
+                        setNotice(result.message);
+                      })
+                    }
+                  >
+                    {busy
+                      ? "Updating…"
+                      : modal.member.joined
+                        ? "Remove member"
+                        : "Revoke invitation"}
+                  </button>
+                </div>
+              </div>
+            ) : modal === "invite" || modal.type === "invite" ? (
               <ActionForm
                 title="Better with a friend."
                 description="Send an invitation. Only invited email addresses can join your group."
@@ -970,8 +1086,13 @@ function App() {
                   })
                 }
                 fields={[
-                  ["name", "Name", "text", "Jason"],
-                  ["email", "Email address", "email", ""],
+                  ["name", "Name", "text", modal.member?.name ?? "Jason"],
+                  [
+                    "email",
+                    "Email address",
+                    "email",
+                    modal.member?.email ?? "",
+                  ],
                 ]}
                 button="Send invitation"
                 busy={busy}

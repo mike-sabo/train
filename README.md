@@ -29,9 +29,26 @@ Resend's free transactional plan supports a small invite-only group. Keep the ac
 3. Build the app and run npm start. The start command accepts a local .env file if present; hosting environment variables take precedence.
 4. Mike signs in, enters Jason’s name and email, and sends the invitation. The email links to the app. Jason accepts by requesting and entering an email verification code. Uninvited addresses cannot sign in.
 
-Email codes expire after 10 minutes, allow at most five guesses, and are consumed after successful use. Requests are rate limited in SQLite, so restarting the server does not reset the limits. Member emails are not included in shared group responses. Only the owner can invite members, import plans, and schedule training blocks. Every write derives its member ID from the session.
+Email codes expire after 10 minutes, allow at most five guesses, and are consumed after successful use. Requests are rate limited in SQLite, so restarting the server does not reset the limits. Every workout write derives its member ID from the session.
 
 Sources: https://resend.com/pricing and https://resend.com/blog/new-free-tier (checked October 22, 2026). Sending has not been tested against a live Resend account; credentials and DNS are required.
+
+## Admin and member access
+
+Mike is the only admin. A database constraint prevents a second admin account, and changing OWNER_EMAIL cannot promote someone else or replace Mike. Use the same owner email on subsequent starts. Invitations always create ordinary members; there is no role-promotion endpoint.
+
+| Capability                                    | Mike (admin) | Invited member |
+| --------------------------------------------- | ------------ | -------------- |
+| View plans and group completion               | Yes          | Yes            |
+| Save workouts                                 | Own workouts | Own workouts   |
+| Receive detailed weights and reps             | All members  | Own workouts   |
+| View member email addresses                   | Yes          | No             |
+| Invite, revoke invitations, or remove members | Yes          | No             |
+| Import plan versions and schedule blocks      | Yes          | No             |
+
+The Group tab shows **Revoke invitation** for pending invitations and **Remove member** for accepted accounts. Confirmation immediately invalidates that person's sessions and unused codes. Removed people cannot request new codes or read or write private app data. Their existing workout history remains in the database, visible only to the admin while their access is revoked. **Invite again** restores the same account and history after a fresh email sign-in; old codes and sessions stay invalid. Mike's admin account cannot be removed through the app.
+
+Authorization is enforced by the server, including direct API calls. Member responses contain only their own detailed logs plus other active members' completion status. The local preview uses illustrative accounts and does not grant real account access.
 
 ## Plans and history
 
@@ -51,4 +68,4 @@ No real member accounts or emails are seeded. The preview names Mike and Jason a
 
 ## Verification
 
-Integration tests cover invitation-only sign-in, code expiration and reuse, failed-attempt limits, cross-origin writes, owner-only actions, sign-out, per-member logs, stale-write conflicts, future/recovery-day rejection, overlapping blocks, immutable plan versions, and persistence across database connections.
+Integration tests cover invitation-only sign-in, code expiration and reuse, failed-attempt limits, cross-origin writes, owner-only actions, sign-out, per-member logs, stale-write conflicts, future/recovery-day rejection, overlapping blocks, immutable plan versions, and persistence across database connections. Permission tests cover pending and accepted account revocation, session and code invalidation, re-invitation with retained history, member response privacy, database upgrades, delayed email delivery, and the single-admin constraint.
