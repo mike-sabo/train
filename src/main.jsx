@@ -31,6 +31,7 @@ import {
   repeatFirstSet,
 } from "../shared/workouts.js";
 import "./style.css";
+import { InstallApp } from "./InstallApp.jsx";
 const key = (p) => `${p.id}@${p.version}`;
 const iso = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -133,6 +134,10 @@ function App() {
       theme.mode === "light" ? "#A42D22" : "#FFB8AA",
     );
     root.style.colorScheme = theme.mode;
+    document.querySelector('meta[name="theme-color"]').content = theme.bg;
+    document.querySelector(
+      'meta[name="apple-mobile-web-app-status-bar-style"]',
+    ).content = theme.mode === "light" ? "default" : "black";
   }, [theme.id]);
   useEffect(() => {
     setDraft(log?.body ?? {});
@@ -516,9 +521,12 @@ function App() {
               Proverbs 27:17 · ESV
             </a>
           </div>
-          <div className="schedule">
-            <Clock size={16} />
-            {plan.schedule}
+          <div className="hero-tools">
+            <div className="schedule">
+              <Clock size={16} />
+              {plan.schedule}
+            </div>
+            <InstallApp />
           </div>
         </section>
         {preview && (

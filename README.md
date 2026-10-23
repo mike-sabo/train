@@ -69,6 +69,17 @@ For a new exercise entry, the app prefills values from that member's latest earl
 
 The palette button in the header opens ten themes, including two light options. A signed-in user's selection is saved in SQLite and restored on other devices when they load their account. Changing themes does not alter workout edits or anyone else's preferences. The unsigned preview remembers a separate device-local choice. Theme changes and previous-set lookups require an active invitation and are scoped to the signed-in member.
 
+## Add to your phone
+
+The **Add to Home Screen** button below the workout schedule explains installation for iPhone/iPad and Android. Supporting browsers also offer a native **Install on this device** button when their install prompt is available. The guide stays available when a browser does not provide that prompt, and the install trigger is hidden when running as an installed app. The manifest opens `/workout-plan/` in a standalone window with Train Together's charcoal, orange, and blue dumbbell icon. Apple touch icons and Android maskable icons are included. Browser/status-bar colors follow the member's selected theme.
+
+- **iPhone/iPad:** Open the deployed address in Safari, use Share → Add to Home Screen, keep Open as Web App on if shown, and tap Add.
+- **Android:** Open the deployed address in Chrome, use the ⋮ menu → Install and create shortcut (or Add to Home screen) → Install. Some versions show Install app directly.
+
+Installation is free and requires a reachable HTTPS deployment for phone use. The computer's `localhost` preview is not a phone-accessible deployment; the local guide makes this clear. The installed app needs an internet connection to load and save workouts. There is no offline cache or offline write queue, and installing does not change invitation or account permissions. Members may need to sign in once in the installed app.
+
+Install guidance: [Apple](https://support.apple.com/guide/iphone/iphea86e5236/ios), [Google Chrome](https://support.google.com/chrome/answer/9658361?co=GENIE.Platform%3DAndroid&hl=en), and [MDN installability requirements](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable).
+
 ## Hosting and mikesabo.dev/workout-plan
 
 This is a Node server with a SQLite database, not a static-only site. Deploy one server instance with a persistent disk, set DB_PATH to that disk, terminate HTTPS, and route both `/workout-plan/` and `/api/` to it. Confirm `/api/` does not conflict with another application on the domain. The domain and a GitHub remote are not required for local development.

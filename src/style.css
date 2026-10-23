@@ -1345,3 +1345,114 @@ footer span {
   font-size: 10px;
   margin: 0 0 9px;
 }
+.hero-tools {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.install-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--secondary);
+  font-size: 12px;
+  padding: 0;
+}
+.install-dialog {
+  margin: auto;
+  color: var(--text);
+  max-width: calc(100% - 32px);
+  max-height: calc(
+    100dvh - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+  );
+}
+.install-dialog::backdrop {
+  background: #111c;
+  backdrop-filter: blur(6px);
+}
+.install-icon {
+  display: block;
+  border-radius: 15px;
+  margin-bottom: 18px;
+}
+.install-dialog .eyebrow {
+  font-size: 10px;
+}
+.install-dialog h2 {
+  font-size: 25px;
+}
+.install-note {
+  margin-top: 18px;
+  padding: 12px;
+  border: 1px solid var(--tint-border);
+  border-radius: 8px;
+  background: var(--tint);
+}
+.install-platforms {
+  display: flex;
+  gap: 8px;
+  margin: 22px 0 16px;
+}
+.install-platforms button {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.install-platforms button[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--success-surface);
+  border-color: var(--success-border);
+}
+.install-steps {
+  padding-left: 22px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.install-steps li {
+  padding-left: 5px;
+  margin-bottom: 12px;
+}
+.install-steps li::marker {
+  color: var(--secondary);
+  font-weight: 700;
+}
+.install-steps strong {
+  color: var(--text);
+  font-weight: 500;
+}
+.install-dialog .install-footnote {
+  color: var(--muted);
+  font-size: 11px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin: 20px 0;
+}
+.install-message,
+.install-success {
+  margin-top: 20px;
+  color: var(--secondary);
+}
+.install-success {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+@media (max-width: 900px) {
+  .hero-tools {
+    align-items: flex-start;
+    gap: 0;
+  }
+}
+@media (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}

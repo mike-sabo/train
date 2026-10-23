@@ -1,0 +1,26 @@
+{
+  "id": "/workout-plan/",
+  "name": "Train Together",
+  "short_name": "Train Together",
+  "description": "Your workouts, your progress, and a little accountability. iron sharpens iron.",
+  "lang": "en",
+  "start_url": "/workout-plan/",
+  "scope": "/workout-plan/",
+  "display": "standalone",
+  "background_color": "#202124",
+  "theme_color": "#202124",
+  "icons": [
+    {
+      "src": "icons/app-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/app-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
