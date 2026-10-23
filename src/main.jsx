@@ -32,6 +32,7 @@ import {
 } from "../shared/workouts.js";
 import "./style.css";
 import { InstallApp } from "./InstallApp.jsx";
+import { api } from "./api.js";
 const key = (p) => `${p.id}@${p.version}`;
 const iso = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -46,16 +47,6 @@ const monday = (s) => {
 };
 const dateText = (s, options) =>
   new Date(s + "T12:00:00").toLocaleDateString("en-US", options);
-async function api(path, body, method) {
-  const r = await fetch("/api" + path, {
-    method: method ?? (body ? "POST" : "GET"),
-    headers: body ? { "Content-Type": "application/json" } : {},
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await r.json();
-  if (!r.ok) throw Object.assign(new Error(data.error), { status: r.status });
-  return data;
-}
 function App() {
   const [today, setToday] = useState(iso(new Date())),
     [selected, setSelected] = useState(iso(new Date())),
@@ -447,7 +438,7 @@ function App() {
   return (
     <>
       <header>
-        <a className="brand" href="/workout-plan/">
+        <a className="brand" href={import.meta.env.BASE_URL}>
           <Dumbbell />
           <span>
             TRAIN TOGETHER<span className="brand-dot">.</span>

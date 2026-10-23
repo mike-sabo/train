@@ -2,5 +2,10 @@ node_modules/
 dist/
 data/
 .env
+.env.*
+!.env.example
+!.env.cloud.example
+supabase/.temp/
+supabase/functions/train-together/index.js
 *.sqlite*
 .DS_Store

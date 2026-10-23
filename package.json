@@ -10,7 +10,10 @@
     "dev": "node --env-file-if-exists=.env server/index.js",
     "build": "vite build",
     "start": "NODE_ENV=production node --env-file-if-exists=.env server/index.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "build:edge": "node scripts/build-edge.mjs",
+    "test:cloud": "node --test tests/cloud/*.test.js",
+    "test:cloud:local": "node scripts/test-cloud-local.mjs"
   },
   "dependencies": {
     "express": "^5.1.0",
@@ -20,6 +23,8 @@
     "zod": "^4.1.0"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
+    "pg": "^8.23.1",
     "prettier": "^3.9.10",
     "vite": "^7.1.0"
   }

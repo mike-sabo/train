@@ -8,7 +8,18 @@ export function previousExercises(db, memberId, before) {
     )
     .get(before, before);
   if (!target) return {};
-  const day = JSON.parse(target.body).days.find(
+  const rows = db
+    .prepare(
+      `SELECT l.date,l.day_id,l.body,p.body AS plan
+    FROM logs l JOIN blocks b ON b.id=l.block_id JOIN plans p ON p.key=b.plan_key
+    WHERE l.member_id=? AND l.date<? ORDER BY l.date DESC`,
+    )
+    .iterate(memberId, before);
+  return historyFromRows(JSON.parse(target.body), before, rows);
+}
+
+export function historyFromRows(plan, before, rows) {
+  const day = plan.days.find(
     (day) => day.weekday === new Date(`${before}T12:00:00Z`).getUTCDay(),
   );
   if (!day) return {};
@@ -21,18 +32,13 @@ export function previousExercises(db, memberId, before) {
     ),
   );
   const history = {};
-  const rows = db
-    .prepare(
-      `SELECT l.date,l.day_id,l.body,p.body AS plan
-    FROM logs l JOIN blocks b ON b.id=l.block_id JOIN plans p ON p.key=b.plan_key
-    WHERE l.member_id=? AND l.date<? ORDER BY l.date DESC`,
-    )
-    .iterate(memberId, before);
   for (const row of rows) {
-    const previousDay = JSON.parse(row.plan).days.find(
-      (day) => day.id === row.day_id,
-    );
-    for (const [id, entry] of Object.entries(JSON.parse(row.body))) {
+    const previousDay = (
+      typeof row.plan === "string" ? JSON.parse(row.plan) : row.plan
+    ).days.find((day) => day.id === row.day_id);
+    for (const [id, entry] of Object.entries(
+      typeof row.body === "string" ? JSON.parse(row.body) : row.body,
+    )) {
       // Saved suggestions are not a completed workout and must not replace actual history.
       if (
         !entry.done ||

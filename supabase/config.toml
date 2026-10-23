@@ -1,0 +1,7 @@
+project_id = "train-together"
+
+[functions.train-together]
+# The function validates Train Together's opaque sessions against the database.
+# Supabase JWT authentication is not used for these invite-only email accounts.
+verify_jwt = false
+entrypoint = "./functions/train-together/index.js"

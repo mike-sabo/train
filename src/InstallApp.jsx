@@ -93,7 +93,7 @@ export function InstallApp() {
         </button>
         <img
           className="install-icon"
-          src="/workout-plan/icons/app-192.png"
+          src={`${import.meta.env.BASE_URL}icons/app-192.png`}
           width="64"
           height="64"
           alt=""

@@ -82,3 +82,29 @@ export function today() {
     timeZone: "America/New_York",
   }).format(new Date());
 }
+
+export const logSchema = z.object({
+  revision: z.number().int().min(0),
+  entries: z.record(
+    z.string(),
+    z.object({
+      done: z.boolean(),
+      variant: z.string(),
+      setLinking: z
+        .object({
+          enabled: z.boolean(),
+          independent: z.array(z.boolean()).max(10),
+        })
+        .optional(),
+      sets: z
+        .array(
+          z.object({
+            weight: z.number().min(0).max(3000).nullable(),
+            reps: z.number().int().min(0).max(1000).nullable(),
+          }),
+        )
+        .max(10),
+    }),
+  ),
+  completed: z.boolean(),
+});

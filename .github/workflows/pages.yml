@@ -1,0 +1,65 @@
+name: Check and publish Train Together
+on:
+  push:
+    branches: [develop]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: tt_test_backend
+        ports: [5432:5432]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      TT_TEST_DATABASE_URL: postgresql://postgres:test-only@localhost:5432/tt_test_backend
+      VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH || '/' }}
+      VITE_API_URL: ${{ vars.VITE_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run test:cloud
+      - run: npm run build:edge
+      - run: npm run build
+      - name: Verify the live backend before publishing
+        if: github.event_name != 'pull_request' && vars.PAGES_ENABLED == 'true'
+        env:
+          APP_ORIGIN: ${{ vars.APP_ORIGIN }}
+        run: node scripts/check-backend.mjs
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request' && vars.PAGES_ENABLED == 'true'
+        with:
+          path: dist
+
+  publish:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/develop' && vars.PAGES_ENABLED == 'true'
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment

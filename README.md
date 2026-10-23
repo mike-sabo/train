@@ -73,7 +73,7 @@ The palette button in the header opens ten themes, including two light options. 
 
 ## Add to your phone
 
-The **Add to Home Screen** button below the workout schedule explains installation for iPhone/iPad and Android. Supporting browsers also offer a native **Install on this device** button when their install prompt is available. The guide stays available when a browser does not provide that prompt, and the install trigger is hidden when running as an installed app. The manifest opens `/workout-plan/` in a standalone window with Train Together's charcoal, orange, and blue dumbbell icon. Apple touch icons and Android maskable icons are included. Browser/status-bar colors follow the member's selected theme.
+The **Add to Home Screen** button below the workout schedule explains installation for iPhone/iPad and Android. Supporting browsers also offer a native **Install on this device** button when their install prompt is available. The guide stays available when a browser does not provide that prompt, and the install trigger is hidden when running as an installed app. The manifest opens the configured application path (`/workout-plan/` locally and `/` on the custom subdomain) in a standalone window with Train Together's charcoal, orange, and blue dumbbell icon. Apple touch icons and Android maskable icons are included. Browser/status-bar colors follow the member's selected theme.
 
 - **iPhone/iPad:** Open the deployed address in Safari, use Share → Add to Home Screen, keep Open as Web App on if shown, and tap Add.
 - **Android:** Open the deployed address in Chrome, use the ⋮ menu → Install and create shortcut (or Add to Home screen) → Install. Some versions show Install app directly.
@@ -82,16 +82,20 @@ Installation is free and requires a reachable HTTPS deployment for phone use. Th
 
 Install guidance: [Apple](https://support.apple.com/guide/iphone/iphea86e5236/ios), [Google Chrome](https://support.google.com/chrome/answer/9658361?co=GENIE.Platform%3DAndroid&hl=en), and [MDN installability requirements](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable).
 
-## Hosting and mikesabo.dev/workout-plan
+## Hosting
 
-This is a Node server with a SQLite database, not a static-only site. Deploy one server instance with a persistent disk, set DB_PATH to that disk, terminate HTTPS, and route both `/workout-plan/` and `/api/` to it. Confirm `/api/` does not conflict with another application on the domain. The domain and a GitHub remote are not required for local development.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the prepared GitHub Pages + Supabase Free + Resend Free deployment, with `train.mikesabo.dev` as the proposed address. The hosted backend preserves invitation-only access, Mike's sole admin role, personal logs, all plan versions, and immediate revocation. Repository variables select the API URL and website base path. The deployment workflow does not publish until the real backend is configured and passes its access check.
 
-SQLite holds accounts, invitations, sessions, challenges, rate limits, plans, blocks, and workouts in `data/train-together.sqlite`. Keep that directory private and out of Git. Back up using SQLite's backup facility, or stop the app before copying the database; a live WAL database must not be backed up by copying only its main file. Hosting costs are separate from Resend's email allowance. Multiple server instances require a shared database design.
+Local development still uses Node and SQLite at `/workout-plan/`. The SQLite database contains local accounts, invitations, sessions, challenges, rate limits, plans, blocks, and workouts in `data/train-together.sqlite`. Keep that directory private and out of Git. No preview data is automatically copied to Supabase.
 
-No real member accounts or emails are seeded. The preview names Mike and Jason are illustrative until you sign in and invite members. There is no public registration, automated marketing email, password, or paid SMS dependency.
+For the original single-server deployment, run one Node instance with a persistent SQLite disk, HTTPS, and routes for both `/workout-plan/` and `/api/`. Back up SQLite using its backup facility or stop the app before copying the database; copying only a live WAL database's main file is not a safe backup.
+
+No real member accounts or emails are seeded in the repository. Preview names Mike and Jason are illustrative until you sign in and invite members. There is no public registration, marketing email, password, or SMS dependency.
 
 ## Verification
 
 Integration tests cover invitation-only sign-in, code expiration and reuse, failed-attempt limits, cross-origin writes, owner-only actions, sign-out, per-member logs, stale-write conflicts, future/recovery-day rejection, overlapping blocks, immutable plan versions, and persistence across database connections. Permission tests cover pending and accepted account revocation, session and code invalidation, re-invitation with retained history, member response privacy, database upgrades, delayed email delivery, and the single-admin constraint.
 
 Logging tests cover earlier dates, completed exercises, independent members and variations, renamed exercises, changed set counts, zero values, automatic fill, custom sets, switch behavior, and saved set links. Theme tests cover persistence, invalid choices, cross-account writes, revoked access, and cross-origin requests. Mobile checks exercise automatic fill, individual overrides, saving and reloading, separate calf history, and theme changes without losing edits.
+
+Hosted tests additionally exercise PostgreSQL migrations, denied direct database access, CORS, bearer sessions, persisted failed-code limits, delayed-email revocation races, simultaneous writes, member privacy, and client session storage.

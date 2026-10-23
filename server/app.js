@@ -2,7 +2,7 @@ import express from "express";
 import { randomBytes, randomInt, createHash } from "node:crypto";
 import { z } from "zod";
 import { database } from "./db.js";
-import { planSchema, dateSchema, addDays, today } from "./schema.js";
+import { planSchema, logSchema, dateSchema, addDays, today } from "./schema.js";
 import { themes } from "../shared/themes.js";
 import { previousExercises } from "./history.js";
 const emailSchema = z.string().trim().toLowerCase().email().max(254);
@@ -391,33 +391,7 @@ export function createApp(config = {}) {
   app.put("/api/logs/:date", (req, res) => {
     const date = dateSchema.parse(req.params.date);
     if (date > today()) fail(400, "Future workouts cannot be logged yet.");
-    const data = z
-      .object({
-        revision: z.number().int().min(0),
-        entries: z.record(
-          z.string(),
-          z.object({
-            done: z.boolean(),
-            variant: z.string(),
-            setLinking: z
-              .object({
-                enabled: z.boolean(),
-                independent: z.array(z.boolean()).max(10),
-              })
-              .optional(),
-            sets: z
-              .array(
-                z.object({
-                  weight: z.number().min(0).max(3000).nullable(),
-                  reps: z.number().int().min(0).max(1000).nullable(),
-                }),
-              )
-              .max(10),
-          }),
-        ),
-        completed: z.boolean(),
-      })
-      .parse(req.body);
+    const data = logSchema.parse(req.body);
     const block = db
       .prepare(
         "SELECT b.*,p.body FROM blocks b JOIN plans p ON p.key=b.plan_key WHERE b.start<=? AND b.end>=?",
