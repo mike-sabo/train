@@ -497,3 +497,102 @@ test("workouts persist across devices with privacy, atomic revisions, history, t
   ).data;
   assert.deepEqual(reopened.logs.find((l) => l.member_id === 2).body, entries);
 });
+
+test("future plans save across devices while early completion remains blocked", async (t) => {
+  const f = await fixture(t);
+  const owner = await f.login("mike@example.com");
+  await f.invite(owner);
+  const member = await f.login("jason@example.com");
+  const otherDevice = await f.login("jason@example.com");
+  const nextMonday = addDays(
+    today(),
+    7 - ((new Date(today() + "T12:00:00Z").getUTCDay() + 6) % 7),
+  );
+  assert.equal(
+    (
+      await f.request(
+        "/blocks",
+        { planKey, start: nextMonday, weeks: 8 },
+        owner,
+      )
+    ).status,
+    200,
+  );
+  const exercise = plan.days.find((day) => day.weekday === 1).exercises[0];
+  const entries = {
+    [exercise.id]: {
+      done: false,
+      variant: exercise.id,
+      sets: Array.from({ length: exercise.sets }, () => ({
+        weight: 42.5,
+        reps: 8,
+      })),
+      setLinking: {
+        enabled: true,
+        independent: Array(exercise.sets).fill(false),
+      },
+    },
+  };
+  const body = { entries, completed: false, revision: 0 };
+  const path = `/logs/${nextMonday}`;
+  assert.equal((await f.request(path, body, member, "PUT")).status, 200);
+  const read = () =>
+    f.request(`/state?week=${nextMonday}`, undefined, otherDevice);
+  let saved = (await read()).data.logs[0];
+  assert.deepEqual(saved.body, entries);
+  assert.equal(saved.completed, 0);
+  assert.equal(saved.revision, 1);
+  assert.equal((await f.request(path, body, otherDevice, "PUT")).status, 409);
+  for (const invalid of [
+    { ...body, revision: 1, completed: true },
+    {
+      ...body,
+      revision: 1,
+      entries: { [exercise.id]: { ...entries[exercise.id], done: true } },
+    },
+  ]) {
+    const result = await f.request(path, invalid, otherDevice, "PUT");
+    assert.equal(result.status, 400);
+    assert.match(result.data.error, /cannot be checked off yet/);
+  }
+  entries[exercise.id].sets[0].weight = 0;
+  entries[exercise.id].setLinking.enabled = false;
+  assert.equal(
+    (await f.request(path, { ...body, revision: 1 }, otherDevice, "PUT"))
+      .status,
+    200,
+  );
+  saved = (await read()).data.logs[0];
+  assert.deepEqual(saved.body, entries);
+  assert.equal(saved.revision, 2);
+  assert.deepEqual(
+    (
+      await f.request(
+        `/history?before=${addDays(nextMonday, 7)}`,
+        undefined,
+        member,
+      )
+    ).data.history,
+    {},
+  );
+  assert.equal(
+    (await f.request(`/logs/${addDays(nextMonday, 1)}`, body, member, "PUT"))
+      .status,
+    400,
+  );
+  assert.equal(
+    (await f.request(`/logs/${addDays(nextMonday, 56)}`, body, member, "PUT"))
+      .status,
+    400,
+  );
+  const permissions = (
+    await f.db.query(
+      "select prosecdef, has_function_privilege('anon',oid,'execute') as anon_access, has_function_privilege('authenticated',oid,'execute') as member_access from pg_proc where oid='public.tt_rpc(text,jsonb,text,text)'::regprocedure",
+    )
+  ).rows[0];
+  assert.deepEqual(permissions, {
+    prosecdef: false,
+    anon_access: false,
+    member_access: false,
+  });
+});

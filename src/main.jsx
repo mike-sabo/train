@@ -246,7 +246,9 @@ function App() {
     setNotice(
       completed
         ? "Workout complete. Good work showing up."
-        : "Progress saved to your account.",
+        : selected > today
+          ? "Planned weights and reps saved to your account."
+          : "Progress saved to your account.",
     );
     setDirty(false);
   }
@@ -418,7 +420,7 @@ function App() {
         <a className="brand" href={import.meta.env.BASE_URL}>
           <Dumbbell />
           <span>
-            TRAIN TOGETHER<span className="brand-dot">.</span>
+            Train<span className="brand-dot">.</span>
           </span>
         </a>
         <nav className="desktop-nav">
@@ -713,7 +715,7 @@ function App() {
                                   </p>
                                   <button
                                     className="text-button"
-                                    disabled={busy || selected > today}
+                                    disabled={busy}
                                     onClick={() =>
                                       update(
                                         e,
@@ -744,7 +746,7 @@ function App() {
                                     aria-checked={linking.enabled}
                                     aria-label={`${variant.name}: Same for all sets`}
                                     aria-describedby={`set-link-note-${e.id}`}
-                                    disabled={busy || selected > today}
+                                    disabled={busy}
                                     onClick={() =>
                                       update(
                                         e,
@@ -787,7 +789,7 @@ function App() {
                                       max="3000"
                                       step="0.5"
                                       value={s.weight ?? ""}
-                                      disabled={busy || selected > today}
+                                      disabled={busy}
                                       placeholder="—"
                                       onChange={(ev) =>
                                         update(
@@ -810,7 +812,7 @@ function App() {
                                       min="0"
                                       max="1000"
                                       value={s.reps ?? ""}
-                                      disabled={busy || selected > today}
+                                      disabled={busy}
                                       placeholder="—"
                                       onChange={(ev) =>
                                         update(
@@ -834,7 +836,7 @@ function App() {
                                   Exercise variation
                                   <select
                                     value={ent.variant}
-                                    disabled={busy || selected > today}
+                                    disabled={busy}
                                     onChange={(ev) => {
                                       const v = [e, ...e.substitutions].find(
                                         (v) => v.id === ev.target.value,
@@ -860,7 +862,7 @@ function App() {
                     {dirty && (
                       <button
                         className="outline"
-                        disabled={busy || selected > today}
+                        disabled={busy}
                         onClick={() =>
                           act(() =>
                             persist(
@@ -871,7 +873,9 @@ function App() {
                           )
                         }
                       >
-                        Save set details
+                        {selected > today
+                          ? "Save planned weights"
+                          : "Save set details"}
                       </button>
                     )}
                     <button
@@ -889,7 +893,7 @@ function App() {
                   </div>
                   <p className="small muted centered">
                     {selected > today
-                      ? "Upcoming workout · logging opens on the scheduled day."
+                      ? "Plan your weights and reps now. Checkoffs open on the scheduled day."
                       : preview
                         ? "Preview checkoffs are temporary."
                         : "Your checkoffs are saved to your account."}
@@ -1147,7 +1151,7 @@ function App() {
         </div>
         <footer>
           Small steps. Shared strength.
-          <span>TRAIN TOGETHER · PROVERBS 27:17</span>
+          <span>Train · PROVERBS 27:17</span>
         </footer>
       </main>
       <nav className="mobile-nav">
@@ -1354,7 +1358,7 @@ function ActionForm({ title, description, fields, onSubmit, button, busy }) {
         onSubmit(Object.fromEntries(new FormData(e.currentTarget)));
       }}
     >
-      <p className="eyebrow">TRAIN TOGETHER</p>
+      <p className="eyebrow">Train</p>
       <h2>{title}</h2>
       <p className="muted">{description}</p>
       {fields.map(([name, label, type, value]) => (

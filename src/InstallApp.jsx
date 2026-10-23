@@ -57,12 +57,12 @@ export function InstallApp() {
       const choice = await prompt.userChoice;
       setMessage(
         choice.outcome === "accepted"
-          ? "Your browser is adding Train Together. Follow any remaining prompts."
+          ? "Your browser is adding Train. Follow any remaining prompts."
           : "No problem. You can add it later using your browser’s menu.",
       );
     } catch {
       setMessage(
-        "Use your browser’s menu to add Train Together. The steps are below.",
+        "Use your browser’s menu to add Train. The steps are below.",
       );
     } finally {
       setInstalling(false);
@@ -98,7 +98,7 @@ export function InstallApp() {
           height="64"
           alt=""
         />
-        <p className="eyebrow">TRAIN TOGETHER</p>
+        <p className="eyebrow">Train</p>
         <h2 id="install-title">One tap. Ready to train.</h2>
         <p className="muted">
           Add your workouts to your Home Screen. Free to add, with the same
@@ -106,7 +106,7 @@ export function InstallApp() {
         </p>
         {installed ? (
           <p className="install-success" role="status">
-            <CheckCircle2 size={20} /> Train Together is installed on this
+            <CheckCircle2 size={20} /> Train is installed on this
             device.
           </p>
         ) : (
@@ -159,7 +159,7 @@ export function InstallApp() {
             {phone === "ios" ? (
               <ol className="install-steps">
                 <li>
-                  Open Train Together in <strong>Safari</strong> on your phone.
+                  Open Train in <strong>Safari</strong> on your phone.
                 </li>
                 <li>
                   Tap <strong>Share</strong> (you may need to open the page menu
@@ -173,7 +173,7 @@ export function InstallApp() {
             ) : (
               <ol className="install-steps">
                 <li>
-                  Open Train Together in <strong>Chrome</strong> on your phone.
+                  Open Train in <strong>Chrome</strong> on your phone.
                 </li>
                 <li>
                   Tap the <strong>⋮ menu</strong>, then{" "}

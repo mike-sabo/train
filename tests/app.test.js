@@ -1056,3 +1056,94 @@ test("set links survive saving and reject flags that do not match the planned ro
   const saved = (await request("/state?week=" + date, undefined, owner)).data;
   assert.deepEqual(saved.logs[0].body[exercise.id], switchedOff);
 });
+
+test("future weights persist without allowing early exercise or workout completion", async (t) => {
+  const { request, login } = await fixture(t);
+  const owner = await login("mike@example.com");
+  const plan = (await request("/state", undefined, owner)).data.plans[0];
+  const nextMonday = addDays(
+    today(),
+    7 - ((new Date(today() + "T12:00:00Z").getUTCDay() + 6) % 7),
+  );
+  assert.equal(
+    (
+      await request(
+        "/blocks",
+        {
+          planKey: `${plan.id}@${plan.version}`,
+          start: nextMonday,
+          weeks: 8,
+        },
+        owner,
+      )
+    ).status,
+    200,
+  );
+  const exercise = plan.days.find((day) => day.weekday === 1).exercises[0];
+  const entries = {
+    [exercise.id]: {
+      done: false,
+      variant: exercise.id,
+      sets: Array.from({ length: exercise.sets }, () => ({
+        weight: 42.5,
+        reps: 8,
+      })),
+      setLinking: {
+        enabled: true,
+        independent: Array(exercise.sets).fill(false),
+      },
+    },
+  };
+  const body = { entries, completed: false, revision: 0 };
+  const path = `/logs/${nextMonday}`;
+  assert.equal((await request(path, body, owner, "PUT")).status, 200);
+  const otherDevice = await login("mike@example.com");
+  const read = () =>
+    request(`/state?week=${nextMonday}`, undefined, otherDevice);
+  let saved = (await read()).data.logs[0];
+  assert.deepEqual(saved.body, entries);
+  assert.equal(saved.completed, 0);
+  assert.equal(saved.revision, 1);
+  assert.equal((await request(path, body, otherDevice, "PUT")).status, 409);
+  for (const invalid of [
+    { ...body, revision: 1, completed: true },
+    {
+      ...body,
+      revision: 1,
+      entries: { [exercise.id]: { ...entries[exercise.id], done: true } },
+    },
+  ]) {
+    const result = await request(path, invalid, otherDevice, "PUT");
+    assert.equal(result.status, 400);
+    assert.match(result.data.error, /cannot be checked off yet/);
+  }
+  entries[exercise.id].sets[0].weight = 0;
+  entries[exercise.id].setLinking.enabled = false;
+  assert.equal(
+    (await request(path, { ...body, revision: 1 }, otherDevice, "PUT")).status,
+    200,
+  );
+  saved = (await read()).data.logs[0];
+  assert.deepEqual(saved.body, entries);
+  assert.equal(saved.revision, 2);
+  assert.deepEqual(
+    (
+      await request(
+        `/history?before=${addDays(nextMonday, 7)}`,
+        undefined,
+        owner,
+      )
+    ).data.history,
+    {},
+  );
+  assert.equal(
+    (await request(`/logs/${addDays(nextMonday, 1)}`, body, owner, "PUT"))
+      .status,
+    400,
+  );
+  assert.equal(
+    (await request(`/logs/${addDays(nextMonday, 56)}`, body, owner, "PUT"))
+      .status,
+    400,
+  );
+});
