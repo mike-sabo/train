@@ -18,6 +18,7 @@ export default defineConfig({
   plugins: [
     {
       name: "train-together-manifest",
+      apply: "build",
       closeBundle() {
         const manifest = JSON.parse(
           readFileSync("public/manifest.webmanifest", "utf8"),

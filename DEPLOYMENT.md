@@ -21,10 +21,10 @@ The repo includes two migrations: private backend tables and API functions, foll
 
 ```sh
 npm ci
-npx supabase login
-npx supabase link --project-ref YOUR_PROJECT_REF
-npx supabase db push --dry-run
-npx supabase db push
+npx supabase@2.122.0 login
+npx supabase@2.122.0 link --project-ref YOUR_PROJECT_REF
+npx supabase@2.122.0 db push --dry-run
+npx supabase@2.122.0 db push
 ```
 
 Use a fresh dedicated project. Do not apply the initial migration to an unrelated or previously configured database, and do not reset a live database to fix migration errors. The CLI records migration history. With the connector, apply these files as named migrations so later CLI deployments recognize them.
@@ -46,9 +46,9 @@ Copy `.env.cloud.example` to `.env.cloud` and fill it in locally:
 `.env.cloud` is ignored by Git. Supabase automatically supplies `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; do not copy these into the browser configuration. The app uses its own invite-only email-code authentication, so Supabase Auth SMTP configuration and Supabase Auth user invitations are not used.
 
 ```sh
-npx supabase secrets set --env-file .env.cloud
+npx supabase@2.122.0 secrets set --env-file .env.cloud
 npm run build:edge
-npx supabase functions deploy train-together
+npx supabase@2.122.0 functions deploy train-together
 ```
 
 The function URL is `https://YOUR_PROJECT_REF.supabase.co/functions/v1/train-together`. The deployment config sets `verify_jwt=false` because the function checks its own hashed session tokens in PostgreSQL. Only this server-side service role may execute `tt_rpc`; anonymous and authenticated Supabase roles have no access to it or the private tables. There is no public first-run admin signup. Changing `OWNER_EMAIL` cannot promote a member or replace the existing owner.
