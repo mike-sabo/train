@@ -415,7 +415,7 @@ h1 {
 }
 .set-grid {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr) 44px;
+  grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
   align-items: center;
   margin: 5px 0 15px;
@@ -1286,22 +1286,52 @@ footer span {
   color: var(--muted);
   margin-bottom: 12px;
 }
-.copy-set {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  color: var(--secondary);
+.set-link-control {
+  margin: 0 0 16px;
 }
-.copy-heading {
-  text-align: center;
-}
-.repeat-sets {
+.set-link-switch {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 0 0 12px;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  font-size: 12px;
+}
+.switch-track {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  width: 40px;
+  height: 24px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px;
+  background: var(--deep);
+}
+.switch-track i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.set-link-switch[aria-checked="true"] .switch-track {
+  background: var(--secondary);
+  border-color: var(--secondary);
+  justify-content: flex-end;
+}
+.set-link-switch[aria-checked="true"] .switch-track i {
+  background: var(--on-secondary);
+}
+.set-link-control p {
+  color: var(--muted);
+  font-size: 11px;
+}
+.set-number small {
+  display: block;
+  color: var(--secondary);
+  font-size: 9px;
+  margin-top: 3px;
 }
 @media (max-width: 700px) {
   .theme-trigger {

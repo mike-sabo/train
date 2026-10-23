@@ -974,3 +974,85 @@ test("previous sets use only earlier completed matching exercises from the signe
     undefined,
   );
 });
+
+test("set links survive saving and reject flags that do not match the planned rows", async (t) => {
+  const { request, login, app } = await fixture(t);
+  const owner = await login("mike@example.com");
+  const state = (await request("/state", undefined, owner)).data;
+  const plan = state.plans[0];
+  const date = addDays(
+    today(),
+    -((new Date(today() + "T12:00:00Z").getUTCDay() + 6) % 7),
+  );
+  await request(
+    "/blocks",
+    { planKey: `${plan.id}@${plan.version}`, start: date, weeks: 8 },
+    owner,
+  );
+  const exercise = plan.days[0].exercises[0];
+  const entry = {
+    done: false,
+    variant: exercise.id,
+    sets: Array.from({ length: exercise.sets }, (_, index) => ({
+      weight: index === 1 ? 45 : 50,
+      reps: 10,
+    })),
+    setLinking: {
+      enabled: true,
+      independent: Array.from(
+        { length: exercise.sets },
+        (_, index) => index === 1,
+      ),
+    },
+  };
+  const body = {
+    entries: { [exercise.id]: entry },
+    completed: false,
+    revision: 0,
+  };
+  assert.equal(
+    (await request("/logs/" + date, body, owner, "PUT")).status,
+    200,
+  );
+  const result = (await request("/state?week=" + date, undefined, owner)).data;
+  assert.deepEqual(result.logs[0].body[exercise.id], entry);
+  assert.deepEqual(
+    JSON.parse(app.locals.db.prepare("SELECT body FROM logs").get().body)[
+      exercise.id
+    ],
+    entry,
+  );
+  for (const independent of [
+    [false],
+    [true, ...entry.setLinking.independent.slice(1)],
+  ]) {
+    const invalid = {
+      ...body,
+      revision: 1,
+      entries: {
+        [exercise.id]: { ...entry, setLinking: { enabled: true, independent } },
+      },
+    };
+    assert.equal(
+      (await request("/logs/" + date, invalid, owner, "PUT")).status,
+      400,
+    );
+  }
+  const switchedOff = {
+    ...entry,
+    setLinking: { ...entry.setLinking, enabled: false },
+  };
+  assert.equal(
+    (
+      await request(
+        "/logs/" + date,
+        { ...body, revision: 1, entries: { [exercise.id]: switchedOff } },
+        owner,
+        "PUT",
+      )
+    ).status,
+    200,
+  );
+  const saved = (await request("/state?week=" + date, undefined, owner)).data;
+  assert.deepEqual(saved.logs[0].body[exercise.id], switchedOff);
+});

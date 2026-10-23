@@ -399,6 +399,12 @@ export function createApp(config = {}) {
           z.object({
             done: z.boolean(),
             variant: z.string(),
+            setLinking: z
+              .object({
+                enabled: z.boolean(),
+                independent: z.array(z.boolean()).max(10),
+              })
+              .optional(),
             sets: z
               .array(
                 z.object({
@@ -429,6 +435,15 @@ export function createApp(config = {}) {
         e && [e, ...e.substitutions].find((v) => v.id === entry.variant);
       if (!variant || entry.sets.length !== variant.sets)
         fail(400, "The log does not match this plan.");
+      if (
+        entry.setLinking &&
+        (entry.setLinking.independent.length !== entry.sets.length ||
+          entry.setLinking.independent[0] !== false)
+      )
+        fail(
+          400,
+          "Set links must match the planned sets and start with set 1.",
+        );
     }
     if (data.completed && !day.exercises.every((e) => data.entries[e.id]?.done))
       fail(400, "Check off each exercise before completing your workout.");

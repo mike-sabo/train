@@ -20,15 +20,15 @@ import {
   X,
   Mail,
   CheckCircle2,
-  Copy,
   Palette,
 } from "lucide-react";
 import initialPlan from "../plans/foundation-v3.json";
 import { themes, defaultTheme, getTheme } from "../shared/themes.js";
 import {
   makeEntry,
-  copyPreviousSet,
-  repeatFirstSet,
+  getSetLinking,
+  editSet,
+  setSameForAll,
 } from "../shared/workouts.js";
 import "./style.css";
 import { InstallApp } from "./InstallApp.jsx";
@@ -651,6 +651,7 @@ function App() {
                     )}
                     {day.exercises.map((e, index) => {
                       const ent = entry(e),
+                        linking = getSetLinking(ent),
                         variant =
                           [e, ...e.substitutions].find(
                             (v) => v.id === ent.variant,
@@ -767,14 +768,49 @@ function App() {
                                     then check off when finished.
                                   </p>
                                 )}
+                              {ent.sets.length > 1 && (
+                                <div className="set-link-control">
+                                  <button
+                                    className="set-link-switch"
+                                    role="switch"
+                                    aria-checked={linking.enabled}
+                                    aria-label={`${variant.name}: Same for all sets`}
+                                    aria-describedby={`set-link-note-${e.id}`}
+                                    disabled={busy || selected > today}
+                                    onClick={() =>
+                                      update(
+                                        e,
+                                        setSameForAll(ent, !linking.enabled),
+                                      )
+                                    }
+                                  >
+                                    <span>Same for all sets</span>
+                                    <span
+                                      className="switch-track"
+                                      aria-hidden="true"
+                                    >
+                                      <i />
+                                    </span>
+                                  </button>
+                                  <p id={`set-link-note-${e.id}`}>
+                                    {linking.enabled
+                                      ? "Set 1 fills untouched sets. Edit a later set to keep it separate."
+                                      : "Enter each set separately. Turn on to fill untouched sets from set 1."}
+                                  </p>
+                                </div>
+                              )}
                               <div className="set-grid">
                                 <span>SET</span>
                                 <span>WEIGHT · LB</span>
                                 <span>REPS</span>
-                                <span className="copy-heading">COPY</span>
                                 {ent.sets.map((s, i) => (
                                   <React.Fragment key={i}>
-                                    <span>{i + 1}</span>
+                                    <span className="set-number">
+                                      {i + 1}
+                                      {linking.independent[i] && (
+                                        <small>Custom</small>
+                                      )}
+                                    </span>
                                     <input
                                       aria-label={`${variant.name} set ${i + 1} weight`}
                                       inputMode="decimal"
@@ -786,20 +822,17 @@ function App() {
                                       disabled={busy || selected > today}
                                       placeholder="—"
                                       onChange={(ev) =>
-                                        update(e, {
-                                          ...ent,
-                                          sets: ent.sets.map((v, j) =>
-                                            j === i
-                                              ? {
-                                                  ...v,
-                                                  weight:
-                                                    ev.target.value === ""
-                                                      ? null
-                                                      : Number(ev.target.value),
-                                                }
-                                              : v,
+                                        update(
+                                          e,
+                                          editSet(
+                                            ent,
+                                            i,
+                                            "weight",
+                                            ev.target.value === ""
+                                              ? null
+                                              : Number(ev.target.value),
                                           ),
-                                        })
+                                        )
                                       }
                                     />
                                     <input
@@ -812,57 +845,22 @@ function App() {
                                       disabled={busy || selected > today}
                                       placeholder="—"
                                       onChange={(ev) =>
-                                        update(e, {
-                                          ...ent,
-                                          sets: ent.sets.map((v, j) =>
-                                            j === i
-                                              ? {
-                                                  ...v,
-                                                  reps:
-                                                    ev.target.value === ""
-                                                      ? null
-                                                      : Number(ev.target.value),
-                                                }
-                                              : v,
+                                        update(
+                                          e,
+                                          editSet(
+                                            ent,
+                                            i,
+                                            "reps",
+                                            ev.target.value === ""
+                                              ? null
+                                              : Number(ev.target.value),
                                           ),
-                                        })
+                                        )
                                       }
                                     />
-                                    {i === 0 ? (
-                                      <span />
-                                    ) : (
-                                      <button
-                                        className="copy-set"
-                                        aria-label={`Copy previous set to ${variant.name} set ${i + 1}`}
-                                        disabled={
-                                          busy ||
-                                          selected > today ||
-                                          (ent.sets[i - 1].weight === null &&
-                                            ent.sets[i - 1].reps === null)
-                                        }
-                                        onClick={() =>
-                                          update(e, copyPreviousSet(ent, i))
-                                        }
-                                      >
-                                        <Copy size={16} />
-                                      </button>
-                                    )}
                                   </React.Fragment>
                                 ))}
                               </div>
-                              <button
-                                className="text-button repeat-sets"
-                                disabled={
-                                  busy ||
-                                  selected > today ||
-                                  (ent.sets[0].weight === null &&
-                                    ent.sets[0].reps === null)
-                                }
-                                onClick={() => update(e, repeatFirstSet(ent))}
-                              >
-                                <Copy size={14} />
-                                Use set 1 for all sets
-                              </button>
                               {e.substitutions.length > 0 && (
                                 <label>
                                   Exercise variation
