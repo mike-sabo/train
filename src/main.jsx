@@ -790,7 +790,6 @@ function App() {
                                       step="0.5"
                                       value={s.weight ?? ""}
                                       disabled={busy}
-                                      placeholder="—"
                                       onChange={(ev) =>
                                         update(
                                           e,
@@ -813,7 +812,6 @@ function App() {
                                       max="1000"
                                       value={s.reps ?? ""}
                                       disabled={busy}
-                                      placeholder="—"
                                       onChange={(ev) =>
                                         update(
                                           e,
