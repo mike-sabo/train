@@ -186,7 +186,7 @@ test("hosted authentication, one admin, invitation-only access, CORS, and single
   const state = (await f.request("/state", undefined, member)).data;
   assert.equal(state.me.role, "member");
   assert.ok(state.members.every((m) => !("email" in m)));
-  assert.equal(state.plans.length, 3);
+  assert.equal(state.plans.length, 4);
   assert.equal((await f.request("/members/1/revoke", {}, owner)).status, 403);
   assert.equal(
     (await f.rpc("bootstrap", { email: "jason@example.com" })).status,

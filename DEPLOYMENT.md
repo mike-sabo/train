@@ -19,7 +19,7 @@ As checked October 23, 2026:
 
 Create a dedicated Supabase project in a **Free organization**, preferably in a US East region. Use the Supabase connector, or sign in with the Supabase CLI. Keep the database password in your password manager. Do not paste keys in chat or add them to Vite variables.
 
-The repo includes migrations for private backend tables and API functions, all three immutable workout plan versions, and indexes for member revocation and foreign-key checks. It does not import local preview data, send invitations, or schedule a training block automatically.
+The repo includes migrations for private backend tables and API functions, all four immutable workout plan versions, and indexes for member revocation and foreign-key checks. It does not import local preview data, send invitations, or schedule a training block automatically.
 
 ```sh
 npm ci

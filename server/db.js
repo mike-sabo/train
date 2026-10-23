@@ -37,6 +37,7 @@ export function database(path) {
     "foundation-v1.json",
     "foundation-v2.json",
     "foundation-v3.json",
+    "foundation-v4.json",
   ]) {
     const plan = planSchema.parse(
       JSON.parse(

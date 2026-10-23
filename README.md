@@ -53,13 +53,15 @@ Authorization is enforced by the server, including direct API calls. Member resp
 
 ## Plans and history
 
-`plans/foundation-v1.json` contains the exact Monday/Wednesday/Friday routine recovered from the original chat, including the optional Friday landmine squat. Version 2 replaced Friday's hack squat with leg press (3 × 8–12), keeping landmine squat available. `plans/foundation-v3.json` is the current routine: it adds dumbbell lateral raises (2 × 12–15) and leg-press calf raises (2 × 12–20) on Monday and Friday. Earlier versions remain available for existing history. Import/export uses schema version 1. `plans/plan.schema.json` documents the JSON shape; `server/schema.js` adds validation for unique day and exercise IDs.
+`plans/foundation-v1.json` contains the exact Monday/Wednesday/Friday routine recovered from the original chat, including the optional Friday landmine squat. Version 2 replaced Friday's hack squat with leg press (3 × 8–12), keeping landmine squat available. Version 3 added dumbbell lateral raises (2 × 12–15) and leg-press calf raises (2 × 12–20) on Monday and Friday. `plans/foundation-v4.json` is the current routine: it replaces Wednesday's unavailable glute-drive machine with dumbbell Romanian deadlifts (2 × 10–12). The replacement has its own exercise ID so hip-thrust weights do not prefill deadlift sets. Earlier versions remain available for existing history. Import/export uses schema version 1. `plans/plan.schema.json` documents the JSON shape; `server/schema.js` adds validation for unique day and exercise IDs.
 
 To change routines, export a plan, edit it, increment its version, import it, and schedule a non-overlapping block. A new routine can have a new plan ID and start at version 1. Existing plan versions cannot be overwritten. Blocks point to immutable versions, and logs point to blocks. Past logs retain exercises, selected substitutions, and per-set weights and reps. New blocks can start after an existing block; shortening an active block is not implemented.
 
 Demonstrations prefer Jeff Nippard and Albert Dorner (Bertl_lifts). Exercise-specific alternatives remain where a matching preferred tutorial was not verified. Source URLs and verification notes are included in each exercise. Verification means matching title, exercise and creator metadata, plus the noted visual check; it does not guarantee future availability or certify exercise safety. The incline demonstration discusses multiple movements, including incline dumbbell pressing.
 
 Version 3 uses Jeff Nippard for both new exercises. The lateral-raise short compares dumbbell variations. The calf-raise link starts at 11:23 in his leg workout and is explicitly labeled as a single-leg demonstration. Optional demo fields `startSeconds` and `caption` preserve the base YouTube URL while opening the relevant segment.
+
+Version 4 uses Scott Herman's verified dumbbell Romanian deadlift tutorial as an exercise-specific alternative. The video title, creator and visible demonstration were checked on October 23, 2026.
 
 ## Faster logging and personal themes
 
