@@ -661,6 +661,17 @@ function App() {
                                   "exercise " + (ent.done ? "checked" : "")
                                 }
                                 key={e.id}
+                                onClick={(event) => {
+                                  if (
+                                    event.target.closest(
+                                      "a, button, input, select, textarea, label, summary",
+                                    )
+                                  )
+                                    return;
+                                  event.currentTarget.querySelector(
+                                    "details",
+                                  ).open = true;
+                                }}
                               >
                                 <div className="exercise-top">
                                   <button

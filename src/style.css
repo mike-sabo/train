@@ -1514,3 +1514,7 @@ footer span {
   outline: 2px solid var(--secondary);
   outline-offset: 3px;
 }
+
+.exercise:not(:has(details[open])) {
+  cursor: pointer;
+}
