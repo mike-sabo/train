@@ -1486,3 +1486,31 @@ footer span {
     padding-right: env(safe-area-inset-right);
   }
 }
+
+.exercise-group {
+  display: grid;
+  gap: 12px;
+}
+.exercise-group + .exercise-group {
+  margin-top: 12px;
+}
+.exercise-group-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.exercise-group-heading h3 {
+  font-size: 16px;
+}
+.exercise-group-heading span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.plan-exercise-group h4 {
+  margin: 18px 0 0;
+}
+.checkbox:focus-visible {
+  outline: 2px solid var(--secondary);
+  outline-offset: 3px;
+}

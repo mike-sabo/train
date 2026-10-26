@@ -57,3 +57,29 @@ export function setSameForAll(entry, enabled) {
     setLinking: linking,
   };
 }
+
+// Group by the planned exercise, so choosing a variation never moves its card.
+export function groupExercises(exercises) {
+  const groups = new Map();
+  for (const exercise of exercises) {
+    const name = exercise.name.toLowerCase();
+    const group = /row|pulldown|pull-up|chin-up/.test(name)
+      ? "Back"
+      : /leg|squat|deadlift|glute|hip thrust|calf|lunge/.test(name)
+        ? "Legs"
+        : /chest|bench|fly/.test(name)
+          ? "Chest"
+          : /shoulder|landmine.*press|lateral raise|overhead press/.test(name)
+            ? "Shoulders"
+            : /tricep/.test(name)
+              ? "Triceps"
+              : /bicep/.test(name)
+                ? "Biceps"
+                : /abdominal|crunch|plank|core/.test(name)
+                  ? "Core"
+                  : "Other exercises";
+    if (!groups.has(group)) groups.set(group, []);
+    groups.get(group).push(exercise);
+  }
+  return [...groups].map(([name, exercises]) => ({ name, exercises }));
+}

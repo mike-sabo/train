@@ -4,7 +4,7 @@ The React website uses GitHub Pages at `https://train.mikesabo.dev/`. Supabase F
 
 The source can be public without exposing accounts or workout records. The frontend contains only the public API URL. Database credentials, the service-role key, the admin email, and the email API key are never bundled into the website or committed to Git.
 
-The initial Pages deployment is live with a valid certificate and HTTPS enforcement. The production manifest uses `/` for its start URL and scope; the app icons, mobile layout, and Home Screen guide were checked on the deployed site. Mike still needs to sign in, schedule the first training block, and invite members through the app.
+The initial Pages deployment is live with a valid certificate and HTTPS enforcement. The production manifest uses `/` for its start URL and scope; the app icons, mobile layout, and Home Screen guide were checked on the deployed site. The October 26–December 20 block now uses the three-set version 5 plan.
 
 ## Costs and limits
 
@@ -19,7 +19,7 @@ As checked October 23, 2026:
 
 Create a dedicated Supabase project in a **Free organization**, preferably in a US East region. Use the Supabase connector, or sign in with the Supabase CLI. Keep the database password in your password manager. Do not paste keys in chat or add them to Vite variables.
 
-The repo includes migrations for private backend tables and API functions, all four immutable workout plan versions, and indexes for member revocation and foreign-key checks. It does not import local preview data, send invitations, or schedule a training block automatically.
+The repo includes migrations for private backend tables and API functions, all five immutable workout plan versions, and indexes for member revocation and foreign-key checks. It does not import local preview data, send invitations, or schedule a training block automatically.
 
 ```sh
 npm ci
@@ -29,9 +29,9 @@ npx supabase@2.122.0 db push --dry-run
 npx supabase@2.122.0 db push
 ```
 
-Use a fresh dedicated project. Do not apply the initial migration to an unrelated or previously configured database, and do not reset a live database to fix migration errors. The CLI records migration history. With the connector, apply these files as named migrations and match the local filename timestamps to the recorded remote versions so later CLI deployments recognize them.
+Use a fresh dedicated project. Do not apply the initial migration to an unrelated or previously configured database, and do not reset a live database to fix migration errors. The CLI records migration history. Foundation version 5 was applied through the connector as `20261026142133_foundation_v5`; the local migration timestamp matches that recorded version. The separate one-time `supabase/operations/activate_foundation_v5.sql` operation was tested and applied to the existing October 26–December 20 block, preserving recorded values while adding blank third set rows. It is not an automatic migration for other blocks. With the connector, apply these files as named migrations and match the local filename timestamps to the recorded remote versions so later CLI deployments recognize them.
 
-The `train` project (`swlunkwtghtbbaxigbez`) has these migrations applied. Its single owner is configured privately in the database; no training block has been scheduled. The private tables intentionally have RLS enabled without browser policies: their only caller is the server role. Supabase's informational [RLS without policies notice](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy) is expected for this design. Newly created indexes can also show [unused-index notices](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index) until real traffic uses them.
+The `train` project (`swlunkwtghtbbaxigbez`) has these migrations applied. Its single owner is configured privately in the database; the October 26–December 20 training block is scheduled on version 5. The private tables intentionally have RLS enabled without browser policies: their only caller is the server role. Supabase's informational [RLS without policies notice](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy) is expected for this design. Newly created indexes can also show [unused-index notices](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index) until real traffic uses them.
 
 ## 2. Configure email and the admin
 
@@ -88,7 +88,7 @@ Run **Check and publish Train Together** manually after configuring the variable
 
 1. Open the HTTPS domain. Verify the manifest, icons, theme picker, and exercise videos.
 2. Sign in with the configured owner email and its delivered code. Confirm the account is Mike with admin controls.
-3. Schedule the approved v3 plan and the desired start date in the app. Invite Jason through the Group screen using his email. Invitations send real email only when you submit them.
+3. Add version 5 with its database migration or the admin’s plan import, then schedule it with a start date after any existing block ends. Existing blocks stay on their original version; the app cannot shorten or replace an active block. Invite Jason through the Group screen using his email. Invitations send real email only when you submit them.
 4. Have a member accept the invitation. Confirm they cannot manage members, publish plans, schedule blocks, or see another member's weights and reps.
 5. Save a workout, reload, and reopen from a phone. Verify previous sets, independent set edits, and personal themes survive.
 6. Test revoke and re-invite with a test account. Access should stop immediately and its history should be preserved.

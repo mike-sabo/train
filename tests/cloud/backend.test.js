@@ -124,6 +124,344 @@ async function fixture(t) {
   };
 }
 
+test("version 5 migration preserves saved workouts and pinned blocks while new blocks require three sets", async (t) => {
+  const f = await fixture(t);
+  const owner = await f.login("mike@example.com");
+  const current = JSON.parse(
+    readFileSync(new URL("../../plans/foundation-v5.json", import.meta.url)),
+  );
+  const previous = JSON.parse(
+    readFileSync(new URL("../../plans/foundation-v4.json", import.meta.url)),
+  );
+  await f.db.query("delete from tt_private.plans where key=$1", [
+    `${current.id}@5`,
+  ]);
+  const oldMonday = addDays(previousMonday, -7);
+  assert.equal(
+    (
+      await f.request(
+        "/blocks",
+        { planKey: `${previous.id}@4`, start: oldMonday, weeks: 1 },
+        owner,
+      )
+    ).status,
+    200,
+  );
+  const oldFriday = addDays(oldMonday, 4);
+  const fridayEntries = (p) =>
+    Object.fromEntries(
+      p.days
+        .find((day) => day.id === "friday")
+        .exercises.map((exercise) => {
+          const variant = exercise.substitutions[0] ?? exercise;
+          return [
+            exercise.id,
+            {
+              done: true,
+              variant: variant.id,
+              sets: Array.from({ length: variant.sets }, () => ({
+                weight: 40,
+                reps: 10,
+              })),
+            },
+          ];
+        }),
+    );
+  const oldEntries = fridayEntries(previous);
+  assert.equal(
+    (
+      await f.request(
+        `/logs/${oldFriday}`,
+        { entries: oldEntries, completed: true, revision: 0 },
+        owner,
+        "PUT",
+      )
+    ).status,
+    200,
+  );
+  const oldPlans = (
+    await f.db.query("select * from tt_private.plans order by key")
+  ).rows;
+  const oldBlocks = (await f.db.query("select * from tt_private.blocks")).rows;
+  const oldLogs = (await f.db.query("select * from tt_private.logs")).rows;
+  await f.db.query(
+    readFileSync(
+      new URL(
+        "../../supabase/migrations/20261026142133_foundation_v5.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  assert.deepEqual(
+    (
+      await f.db.query(
+        "select * from tt_private.plans where key<>$1 order by key",
+        [`${current.id}@5`],
+      )
+    ).rows,
+    oldPlans,
+  );
+  assert.deepEqual(
+    (await f.db.query("select * from tt_private.blocks")).rows,
+    oldBlocks,
+  );
+  assert.deepEqual(
+    (await f.db.query("select * from tt_private.logs")).rows,
+    oldLogs,
+  );
+  const state = (await f.request("/state", undefined, owner)).data;
+  assert.equal(state.plans.length, 5);
+  for (const seeded of state.plans) {
+    assert.deepEqual(
+      seeded,
+      JSON.parse(
+        readFileSync(
+          new URL(
+            `../../plans/foundation-v${seeded.version}.json`,
+            import.meta.url,
+          ),
+        ),
+      ),
+    );
+  }
+  assert.equal(
+    (await f.request("/plans", { ...current, description: "Overwrite" }, owner))
+      .status,
+    409,
+  );
+  assert.equal(
+    (
+      await f.request(
+        "/blocks",
+        { planKey: `${current.id}@5`, start: oldMonday, weeks: 1 },
+        owner,
+      )
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await f.request(
+        "/blocks",
+        { planKey: `${current.id}@5`, start: previousMonday, weeks: 1 },
+        owner,
+      )
+    ).status,
+    200,
+  );
+  const newFriday = addDays(previousMonday, 4);
+  assert.equal(
+    (
+      await f.request(
+        `/logs/${newFriday}`,
+        { entries: oldEntries, completed: true, revision: 0 },
+        owner,
+        "PUT",
+      )
+    ).status,
+    400,
+  );
+  const newEntries = fridayEntries(current);
+  assert.equal(
+    (
+      await f.request(
+        `/logs/${newFriday}`,
+        { entries: newEntries, completed: true, revision: 0 },
+        owner,
+        "PUT",
+      )
+    ).status,
+    200,
+  );
+  const history = (
+    await f.request(`/history?before=${newFriday}`, undefined, owner)
+  ).data.history;
+  assert.deepEqual(
+    history["landmine-squat"].sets,
+    oldEntries["leg-press"].sets,
+  );
+  assert.equal(history["leg-curl"].sets.length, 2);
+  assert.deepEqual(
+    (await f.request(`/state?week=${oldMonday}`, undefined, owner)).data.logs[0]
+      .body,
+    oldEntries,
+  );
+  assert.deepEqual(
+    (await f.request(`/state?week=${previousMonday}`, undefined, owner)).data
+      .logs[0].body,
+    newEntries,
+  );
+});
+
+test("the requested active-block upgrade preserves recorded sets and leaves saved workouts editable", async (t) => {
+  const f = await fixture(t);
+  const owner = await f.login("mike@example.com");
+  const previous = JSON.parse(
+    readFileSync(new URL("../../plans/foundation-v4.json", import.meta.url)),
+  );
+  const operation = readFileSync(
+    new URL(
+      "../../supabase/operations/activate_foundation_v5.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  for (const block of [
+    { planKey: "three-day-foundation@3", start: "2026-10-19", weeks: 1 },
+    { planKey: "three-day-foundation@4", start: "2026-10-26", weeks: 8 },
+  ])
+    assert.equal((await f.request("/blocks", block, owner)).status, 200);
+  const historyBody = {
+    biceps: {
+      variant: "biceps",
+      done: true,
+      sets: [
+        { weight: 20, reps: 10 },
+        { weight: 25, reps: 8 },
+      ],
+    },
+  };
+  await f.db.query(
+    `insert into tt_private.logs(member_id,date,block_id,day_id,body,completed,revision)
+    select 1,'2026-10-21',id,'wednesday',$1,0,2 from tt_private.blocks where start='2026-10-19'`,
+    [historyBody],
+  );
+  for (const [index, day] of previous.days.entries()) {
+    const entries = Object.fromEntries(
+      day.exercises.map((exercise, position) => {
+        const variant = exercise.substitutions[0] ?? exercise;
+        return [
+          exercise.id,
+          {
+            variant: variant.id,
+            done: index === 0,
+            sets: Array.from({ length: variant.sets }, (_, set) => ({
+              weight: 40 + set * 5,
+              reps: 10 - set,
+            })),
+            ...(position % 2 === 0
+              ? {
+                  setLinking: {
+                    enabled: true,
+                    independent: Array.from(
+                      { length: variant.sets },
+                      (_, set) => set > 0,
+                    ),
+                  },
+                }
+              : {}),
+          },
+        ];
+      }),
+    );
+    await f.db.query(
+      `insert into tt_private.logs(member_id,date,block_id,day_id,body,completed,revision)
+      select 1,$1,id,$2,$3,$4,7 from tt_private.blocks where start='2026-10-26'`,
+      [addDays("2026-10-26", index * 2), day.id, entries, index === 0 ? 1 : 0],
+    );
+  }
+  const before = (
+    await f.db.query("select * from tt_private.logs order by date")
+  ).rows;
+  const oldPlans = (
+    await f.db.query("select * from tt_private.plans order by key")
+  ).rows;
+  // Reject a different routine before touching the block or any saved sets.
+  await f.db.query(
+    "update tt_private.plans set body=jsonb_set(body,'{days,0,exercises,0,reps}','\"1\"') where key='three-day-foundation@5'",
+  );
+  await assert.rejects(
+    f.db.query(operation),
+    /must preserve the existing exercises/,
+  );
+  assert.deepEqual(
+    (await f.db.query("select * from tt_private.logs order by date")).rows,
+    before,
+  );
+  await f.db.query(
+    "update tt_private.plans set body=$1 where key='three-day-foundation@5'",
+    [oldPlans.find((p) => p.key.endsWith("@5")).body],
+  );
+  await f.db.query(operation);
+  const after = (
+    await f.db.query("select * from tt_private.logs order by date")
+  ).rows;
+  assert.deepEqual(after[0], before[0]);
+  assert.deepEqual(
+    (await f.db.query("select * from tt_private.plans order by key")).rows,
+    oldPlans,
+  );
+  const blocks = (
+    await f.db.query("select plan_key from tt_private.blocks order by start")
+  ).rows;
+  assert.deepEqual(
+    blocks.map((b) => b.plan_key),
+    ["three-day-foundation@3", "three-day-foundation@5"],
+  );
+  for (let index = 1; index < after.length; index++) {
+    const oldLog = before[index],
+      newLog = after[index];
+    assert.equal(newLog.revision, oldLog.revision + 1);
+    assert.equal(newLog.completed, 0);
+    assert.deepEqual(Object.keys(newLog.body), Object.keys(oldLog.body));
+    for (const [id, oldEntry] of Object.entries(oldLog.body)) {
+      const updated = newLog.body[id];
+      assert.equal(updated.variant, oldEntry.variant);
+      assert.equal(updated.sets.length, 3);
+      assert.deepEqual(
+        updated.sets.slice(0, oldEntry.sets.length),
+        oldEntry.sets,
+      );
+      if (oldEntry.sets.length < 3) {
+        assert.deepEqual(updated.sets[2], { weight: null, reps: null });
+        assert.equal(updated.done, false);
+      } else assert.deepEqual(updated, oldEntry);
+      if (oldEntry.setLinking) {
+        assert.equal(updated.setLinking.enabled, oldEntry.setLinking.enabled);
+        assert.deepEqual(
+          updated.setLinking.independent.slice(0, oldEntry.sets.length),
+          oldEntry.setLinking.independent,
+        );
+        assert.equal(updated.setLinking.independent.length, 3);
+      }
+    }
+  }
+  await f.db.query(operation);
+  assert.deepEqual(
+    (await f.db.query("select * from tt_private.logs order by date")).rows,
+    after,
+  );
+  const monday = after[1];
+  assert.equal(
+    (
+      await f.request(
+        "/logs/2026-10-26",
+        { entries: monday.body, completed: false, revision: 7 },
+        owner,
+        "PUT",
+      )
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await f.request(
+        "/logs/2026-10-26",
+        { entries: monday.body, completed: false, revision: 8 },
+        owner,
+        "PUT",
+      )
+    ).status,
+    200,
+  );
+  const saved = (
+    await f.request("/state?week=2026-10-26", undefined, owner)
+  ).data.logs.find((log) => log.day_id === "monday");
+  assert.deepEqual(saved.body, monday.body);
+  assert.equal(saved.revision, 9);
+});
+
 test("hosted authentication, one admin, invitation-only access, CORS, and single-use codes", async (t) => {
   const f = await fixture(t);
   assert.deepEqual((await f.request("/status")).data, {
@@ -186,7 +524,7 @@ test("hosted authentication, one admin, invitation-only access, CORS, and single
   const state = (await f.request("/state", undefined, member)).data;
   assert.equal(state.me.role, "member");
   assert.ok(state.members.every((m) => !("email" in m)));
-  assert.equal(state.plans.length, 4);
+  assert.equal(state.plans.length, 5);
   assert.equal((await f.request("/members/1/revoke", {}, owner)).status, 403);
   assert.equal(
     (await f.rpc("bootstrap", { email: "jason@example.com" })).status,
