@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   makeEntry,
+  groupExercises,
   getSetLinking,
   editSet,
   setSameForAll,
@@ -147,4 +148,38 @@ test("one-set exercises and resetting to history keep the original planned count
     independent: [false, false],
   });
   assert.deepEqual(reset.sets, history.sets);
+});
+
+test("body groups keep the first group order and the exercise order within each group", () => {
+  const exercises = [
+    { id: "leg-press", name: "Leg Press Machine" },
+    { id: "chest-press", name: "Dumbbell Chest Press" },
+    { id: "landmine-press", name: "Landmine Shoulder Press" },
+    { id: "leg-extension", name: "Leg Extension Machine" },
+    { id: "lateral-raise", name: "Dumbbell Lateral Raise" },
+    { id: "calf-raise", name: "Leg Press Calf Raise" },
+    { id: "row", name: "Chest-Supported Row Machine" },
+    { id: "new", name: "Unfamiliar Movement" },
+  ];
+  const original = structuredClone(exercises);
+  const groups = groupExercises(exercises);
+  assert.deepEqual(
+    groups.map((group) => group.name),
+    ["Legs", "Chest", "Shoulders", "Back", "Other exercises"],
+  );
+  assert.deepEqual(
+    groups[0].exercises.map((exercise) => exercise.id),
+    ["leg-press", "leg-extension", "calf-raise"],
+  );
+  assert.deepEqual(
+    groups[2].exercises.map((exercise) => exercise.id),
+    ["landmine-press", "lateral-raise"],
+  );
+  assert.equal(groups[0].exercises[0], exercises[0]);
+  assert.deepEqual(exercises, original);
+  assert.equal(
+    groups.flatMap((group) => group.exercises).length,
+    exercises.length,
+  );
+  assert.deepEqual(groupExercises([]), []);
 });

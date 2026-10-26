@@ -28,6 +28,7 @@ import { themes, getTheme } from "../shared/themes.js";
 import { applyTheme, readThemeId, rememberTheme } from "./theme.js";
 import {
   makeEntry,
+  groupExercises,
   getSetLinking,
   editSet,
   setSameForAll,
@@ -49,6 +50,17 @@ const monday = (s) => {
 };
 const dateText = (s, options) =>
   new Date(s + "T12:00:00").toLocaleDateString("en-US", options);
+function selectInputContents(event) {
+  const input = event.target;
+  if (
+    input instanceof HTMLInputElement &&
+    ["text", "email", "number", "search", "tel", "url", "password"].includes(
+      input.type,
+    )
+  ) {
+    input.select();
+  }
+}
 function App() {
   const [today, setToday] = useState(iso(new Date())),
     [selected, setSelected] = useState(iso(new Date())),
@@ -415,7 +427,10 @@ function App() {
     </>
   );
   return (
-    <>
+    <div
+      onFocusCapture={selectInputContents}
+      onClickCapture={selectInputContents}
+    >
       <header>
         <a className="brand" href={import.meta.env.BASE_URL}>
           <Dumbbell />
@@ -619,242 +634,267 @@ function App() {
                         {historyError}
                       </p>
                     )}
-                    {day.exercises.map((e, index) => {
-                      const ent = entry(e),
-                        linking = getSetLinking(ent),
-                        variant =
-                          [e, ...e.substitutions].find(
-                            (v) => v.id === ent.variant,
-                          ) ?? e;
-                      return (
-                        <article
-                          className={"exercise " + (ent.done ? "checked" : "")}
-                          key={e.id}
+                    {groupExercises(day.exercises).map(
+                      ({ name, exercises }) => (
+                        <section
+                          className="exercise-group"
+                          key={name}
+                          aria-label={name}
                         >
-                          <div className="exercise-top">
-                            <button
-                              className="checkbox"
-                              aria-label={
-                                "Mark " +
-                                e.name +
-                                (ent.done ? " incomplete" : " complete")
-                              }
-                              aria-pressed={ent.done}
-                              disabled={busy || selected > today}
-                              onClick={() =>
-                                act(async () => {
-                                  const next = {
-                                    ...currentEntries,
-                                    [e.id]: { ...ent, done: !ent.done },
-                                  };
-                                  setDraft(next);
-                                  setDirty(true);
-                                  await persist(next, false);
-                                })
-                              }
-                            >
-                              {ent.done ? (
-                                <Check size={20} />
-                              ) : (
-                                <span>
-                                  {String(index + 1).padStart(2, "0")}
-                                </span>
-                              )}
-                            </button>
-                            <div className="exercise-name">
-                              <h3>{variant.name}</h3>
-                              <p>
-                                {variant.sets} sets <span>×</span>{" "}
-                                {variant.reps} reps{" "}
-                                {index < 3 && (
-                                  <span className="priority">PRIORITY</span>
-                                )}
-                              </p>
-                            </div>
+                          <div className="exercise-group-heading">
+                            <h3>{name}</h3>
+                            <span>
+                              {exercises.filter((e) => entry(e).done).length} /{" "}
+                              {exercises.length} complete
+                            </span>
                           </div>
-                          <div className="exercise-bottom">
-                            <a
-                              href={
-                                variant.demo.url +
-                                (variant.demo.startSeconds
-                                  ? `&t=${variant.demo.startSeconds}s`
-                                  : "")
-                              }
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              <Play size={14} />
-                              <span>Watch {variant.demo.instructor}</span>
-                              <ArrowUpRight size={13} />
-                            </a>
-                            {variant.demo.caption && (
-                              <p className="demo-caption">
-                                {variant.demo.caption}
-                              </p>
-                            )}
-                            <details>
-                              <summary>
-                                Log sets <Plus size={13} />
-                              </summary>
-                              {previous[variant.id] && (
-                                <div className="previous-sets">
-                                  <p>
-                                    Last completed ·{" "}
-                                    {dateText(previous[variant.id].date, {
-                                      month: "short",
-                                      day: "numeric",
-                                    })}
-                                    <span>
-                                      {previous[variant.id].sets
-                                        .map(
-                                          (set) =>
-                                            `${set.weight ?? "—"} lb × ${set.reps ?? "—"}`,
-                                        )
-                                        .join(" · ")}
-                                    </span>
-                                  </p>
+                          {exercises.map((e) => {
+                            const ent = entry(e),
+                              linking = getSetLinking(ent),
+                              variant =
+                                [e, ...e.substitutions].find(
+                                  (v) => v.id === ent.variant,
+                                ) ?? e;
+                            return (
+                              <article
+                                className={
+                                  "exercise " + (ent.done ? "checked" : "")
+                                }
+                                key={e.id}
+                              >
+                                <div className="exercise-top">
                                   <button
-                                    className="text-button"
-                                    disabled={busy}
+                                    className="checkbox"
+                                    aria-label={
+                                      "Mark " +
+                                      e.name +
+                                      (ent.done ? " incomplete" : " complete")
+                                    }
+                                    role="checkbox"
+                                    aria-checked={ent.done}
+                                    disabled={busy || selected > today}
                                     onClick={() =>
-                                      update(
-                                        e,
-                                        makeEntry(
-                                          variant,
-                                          previous[variant.id],
-                                        ),
-                                      )
+                                      act(async () => {
+                                        const next = {
+                                          ...currentEntries,
+                                          [e.id]: { ...ent, done: !ent.done },
+                                        };
+                                        setDraft(next);
+                                        setDirty(true);
+                                        await persist(next, false);
+                                      })
                                     }
                                   >
-                                    Use last time
+                                    {ent.done && <Check size={20} />}
                                   </button>
-                                </div>
-                              )}
-                              {!draft[e.id] &&
-                                !log?.body[e.id] &&
-                                previous[variant.id] && (
-                                  <p className="prefill-note">
-                                    Prefilled from last time. Adjust as needed,
-                                    then check off when finished.
-                                  </p>
-                                )}
-                              {ent.sets.length > 1 && (
-                                <div className="set-link-control">
-                                  <button
-                                    className="set-link-switch"
-                                    role="switch"
-                                    aria-checked={linking.enabled}
-                                    aria-label={`${variant.name}: Same for all sets`}
-                                    aria-describedby={`set-link-note-${e.id}`}
-                                    disabled={busy}
-                                    onClick={() =>
-                                      update(
-                                        e,
-                                        setSameForAll(ent, !linking.enabled),
-                                      )
-                                    }
-                                  >
-                                    <span>Same for all sets</span>
-                                    <span
-                                      className="switch-track"
-                                      aria-hidden="true"
-                                    >
-                                      <i />
-                                    </span>
-                                  </button>
-                                  <p id={`set-link-note-${e.id}`}>
-                                    {linking.enabled
-                                      ? "Set 1 fills untouched sets. Edit a later set to keep it separate."
-                                      : "Enter each set separately. Turn on to fill untouched sets from set 1."}
-                                  </p>
-                                </div>
-                              )}
-                              <div className="set-grid">
-                                <span>SET</span>
-                                <span>WEIGHT · LB</span>
-                                <span>REPS</span>
-                                {ent.sets.map((s, i) => (
-                                  <React.Fragment key={i}>
-                                    <span className="set-number">
-                                      {i + 1}
-                                      {linking.independent[i] && (
-                                        <small>Custom</small>
+                                  <div className="exercise-name">
+                                    <h3>{variant.name}</h3>
+                                    <p>
+                                      {variant.sets} sets <span>×</span>{" "}
+                                      {variant.reps} reps{" "}
+                                      {day.exercises.indexOf(e) < 3 && (
+                                        <span className="priority">
+                                          PRIORITY
+                                        </span>
                                       )}
-                                    </span>
-                                    <input
-                                      aria-label={`${variant.name} set ${i + 1} weight`}
-                                      inputMode="decimal"
-                                      type="number"
-                                      min="0"
-                                      max="3000"
-                                      step="0.5"
-                                      value={s.weight ?? ""}
-                                      disabled={busy}
-                                      onChange={(ev) =>
-                                        update(
-                                          e,
-                                          editSet(
-                                            ent,
-                                            i,
-                                            "weight",
-                                            ev.target.value === ""
-                                              ? null
-                                              : Number(ev.target.value),
-                                          ),
-                                        )
-                                      }
-                                    />
-                                    <input
-                                      aria-label={`${variant.name} set ${i + 1} reps`}
-                                      inputMode="numeric"
-                                      type="number"
-                                      min="0"
-                                      max="1000"
-                                      value={s.reps ?? ""}
-                                      disabled={busy}
-                                      onChange={(ev) =>
-                                        update(
-                                          e,
-                                          editSet(
-                                            ent,
-                                            i,
-                                            "reps",
-                                            ev.target.value === ""
-                                              ? null
-                                              : Number(ev.target.value),
-                                          ),
-                                        )
-                                      }
-                                    />
-                                  </React.Fragment>
-                                ))}
-                              </div>
-                              {e.substitutions.length > 0 && (
-                                <label>
-                                  Exercise variation
-                                  <select
-                                    value={ent.variant}
-                                    disabled={busy}
-                                    onChange={(ev) => {
-                                      const v = [e, ...e.substitutions].find(
-                                        (v) => v.id === ev.target.value,
-                                      );
-                                      update(e, makeEntry(v, previous[v.id]));
-                                    }}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="exercise-bottom">
+                                  <a
+                                    href={
+                                      variant.demo.url +
+                                      (variant.demo.startSeconds
+                                        ? `&t=${variant.demo.startSeconds}s`
+                                        : "")
+                                    }
+                                    target="_blank"
+                                    rel="noreferrer"
                                   >
-                                    {[e, ...e.substitutions].map((v) => (
-                                      <option value={v.id} key={v.id}>
-                                        {v.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </label>
-                              )}
-                            </details>
-                          </div>
-                        </article>
-                      );
-                    })}
+                                    <Play size={14} />
+                                    <span>Watch {variant.demo.instructor}</span>
+                                    <ArrowUpRight size={13} />
+                                  </a>
+                                  {variant.demo.caption && (
+                                    <p className="demo-caption">
+                                      {variant.demo.caption}
+                                    </p>
+                                  )}
+                                  <details>
+                                    <summary>
+                                      Log sets <Plus size={13} />
+                                    </summary>
+                                    {previous[variant.id] && (
+                                      <div className="previous-sets">
+                                        <p>
+                                          Last completed ·{" "}
+                                          {dateText(previous[variant.id].date, {
+                                            month: "short",
+                                            day: "numeric",
+                                          })}
+                                          <span>
+                                            {previous[variant.id].sets
+                                              .map(
+                                                (set) =>
+                                                  `${set.weight ?? "—"} lb × ${set.reps ?? "—"}`,
+                                              )
+                                              .join(" · ")}
+                                          </span>
+                                        </p>
+                                        <button
+                                          className="text-button"
+                                          disabled={busy}
+                                          onClick={() =>
+                                            update(
+                                              e,
+                                              makeEntry(
+                                                variant,
+                                                previous[variant.id],
+                                              ),
+                                            )
+                                          }
+                                        >
+                                          Use last time
+                                        </button>
+                                      </div>
+                                    )}
+                                    {!draft[e.id] &&
+                                      !log?.body[e.id] &&
+                                      previous[variant.id] && (
+                                        <p className="prefill-note">
+                                          Prefilled from last time. Adjust as
+                                          needed, then check off when finished.
+                                        </p>
+                                      )}
+                                    {ent.sets.length > 1 && (
+                                      <div className="set-link-control">
+                                        <button
+                                          className="set-link-switch"
+                                          role="switch"
+                                          aria-checked={linking.enabled}
+                                          aria-label={`${variant.name}: Same for all sets`}
+                                          aria-describedby={`set-link-note-${e.id}`}
+                                          disabled={busy}
+                                          onClick={() =>
+                                            update(
+                                              e,
+                                              setSameForAll(
+                                                ent,
+                                                !linking.enabled,
+                                              ),
+                                            )
+                                          }
+                                        >
+                                          <span>Same for all sets</span>
+                                          <span
+                                            className="switch-track"
+                                            aria-hidden="true"
+                                          >
+                                            <i />
+                                          </span>
+                                        </button>
+                                        <p id={`set-link-note-${e.id}`}>
+                                          {linking.enabled
+                                            ? "Set 1 fills untouched sets. Edit a later set to keep it separate."
+                                            : "Enter each set separately. Turn on to fill untouched sets from set 1."}
+                                        </p>
+                                      </div>
+                                    )}
+                                    <div className="set-grid">
+                                      <span>SET</span>
+                                      <span>WEIGHT · LB</span>
+                                      <span>REPS</span>
+                                      {ent.sets.map((s, i) => (
+                                        <React.Fragment key={i}>
+                                          <span className="set-number">
+                                            {i + 1}
+                                            {linking.independent[i] && (
+                                              <small>Custom</small>
+                                            )}
+                                          </span>
+                                          <input
+                                            aria-label={`${variant.name} set ${i + 1} weight`}
+                                            inputMode="decimal"
+                                            type="number"
+                                            min="0"
+                                            max="3000"
+                                            step="0.5"
+                                            value={s.weight ?? ""}
+                                            disabled={busy}
+                                            onChange={(ev) =>
+                                              update(
+                                                e,
+                                                editSet(
+                                                  ent,
+                                                  i,
+                                                  "weight",
+                                                  ev.target.value === ""
+                                                    ? null
+                                                    : Number(ev.target.value),
+                                                ),
+                                              )
+                                            }
+                                          />
+                                          <input
+                                            aria-label={`${variant.name} set ${i + 1} reps`}
+                                            inputMode="numeric"
+                                            type="number"
+                                            min="0"
+                                            max="1000"
+                                            value={s.reps ?? ""}
+                                            disabled={busy}
+                                            onChange={(ev) =>
+                                              update(
+                                                e,
+                                                editSet(
+                                                  ent,
+                                                  i,
+                                                  "reps",
+                                                  ev.target.value === ""
+                                                    ? null
+                                                    : Number(ev.target.value),
+                                                ),
+                                              )
+                                            }
+                                          />
+                                        </React.Fragment>
+                                      ))}
+                                    </div>
+                                    {e.substitutions.length > 0 && (
+                                      <label>
+                                        Exercise variation
+                                        <select
+                                          value={ent.variant}
+                                          disabled={busy}
+                                          onChange={(ev) => {
+                                            const v = [
+                                              e,
+                                              ...e.substitutions,
+                                            ].find(
+                                              (v) => v.id === ev.target.value,
+                                            );
+                                            update(
+                                              e,
+                                              makeEntry(v, previous[v.id]),
+                                            );
+                                          }}
+                                        >
+                                          {[e, ...e.substitutions].map((v) => (
+                                            <option value={v.id} key={v.id}>
+                                              {v.name}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </label>
+                                    )}
+                                  </details>
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </section>
+                      ),
+                    )}
                   </div>
                   <div className="save-actions">
                     {dirty && (
@@ -901,8 +941,9 @@ function App() {
                     <div>
                       <strong>Consistency over intensity.</strong>
                       <p>
-                        First three exercises are the priority. Alternate sets
-                        with your partner and leave 2–3 reps in reserve.
+                        Exercises marked PRIORITY come first if time is short.
+                        Alternate sets with your partner and leave 2–3 reps in
+                        reserve.
                       </p>
                     </div>
                   </div>
@@ -1004,16 +1045,23 @@ function App() {
                           <span>{d.focus}</span>
                           <Plus size={16} />
                         </summary>
-                        <ol>
-                          {d.exercises.map((e) => (
-                            <li key={e.id}>
-                              {e.name}
-                              <small>
-                                {e.sets} × {e.reps}
-                              </small>
-                            </li>
-                          ))}
-                        </ol>
+                        {groupExercises(d.exercises).map(
+                          ({ name, exercises }) => (
+                            <div className="plan-exercise-group" key={name}>
+                              <h4>{name}</h4>
+                              <ol>
+                                {exercises.map((e) => (
+                                  <li key={e.id}>
+                                    {e.name}
+                                    <small>
+                                      {e.sets} × {e.reps}
+                                    </small>
+                                  </li>
+                                ))}
+                              </ol>
+                            </div>
+                          ),
+                        )}
                       </details>
                     ))}
                     <div className="plan-actions">
@@ -1096,7 +1144,9 @@ function App() {
                   <h3>Keep these in mind</h3>
                   {plan.notes.map((n) => (
                     <p className="muted" key={n}>
-                      {n}
+                      {n === "The first three exercises are the priority."
+                        ? "Exercises marked PRIORITY come first if time is short."
+                        : n}
                     </p>
                   ))}
                 </div>
@@ -1345,7 +1395,7 @@ function App() {
           </section>
         </div>
       )}
-    </>
+    </div>
   );
 }
 function ActionForm({ title, description, fields, onSubmit, button, busy }) {
