@@ -19,7 +19,7 @@ As checked October 23, 2026:
 
 Create a dedicated Supabase project in a **Free organization**, preferably in a US East region. Use the Supabase connector, or sign in with the Supabase CLI. Keep the database password in your password manager. Do not paste keys in chat or add them to Vite variables.
 
-The repo includes migrations for private backend tables and API functions, all four immutable workout plan versions, and indexes for member revocation and foreign-key checks. It does not import local preview data, send invitations, or schedule a training block automatically.
+The repo includes migrations for private backend tables and API functions, all five immutable workout plan versions, and indexes for member revocation and foreign-key checks. It does not import local preview data, send invitations, or schedule a training block automatically.
 
 ```sh
 npm ci
@@ -88,7 +88,7 @@ Run **Check and publish Train Together** manually after configuring the variable
 
 1. Open the HTTPS domain. Verify the manifest, icons, theme picker, and exercise videos.
 2. Sign in with the configured owner email and its delivered code. Confirm the account is Mike with admin controls.
-3. Schedule the approved v3 plan and the desired start date in the app. Invite Jason through the Group screen using his email. Invitations send real email only when you submit them.
+3. Add version 5 with its database migration or the admin’s plan import, then schedule it with a start date after any existing block ends. Existing blocks stay on their original version; the app cannot shorten or replace an active block. Invite Jason through the Group screen using his email. Invitations send real email only when you submit them.
 4. Have a member accept the invitation. Confirm they cannot manage members, publish plans, schedule blocks, or see another member's weights and reps.
 5. Save a workout, reload, and reopen from a phone. Verify previous sets, independent set edits, and personal themes survive.
 6. Test revoke and re-invite with a test account. Access should stop immediately and its history should be preserved.

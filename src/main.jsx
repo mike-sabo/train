@@ -22,7 +22,7 @@ import {
   CheckCircle2,
   Palette,
 } from "lucide-react";
-import initialPlan from "../plans/foundation-v4.json";
+import initialPlan from "../plans/foundation-v5.json";
 import { latestPlanVersions } from "../shared/plans.js";
 import { themes, getTheme } from "../shared/themes.js";
 import { applyTheme, readThemeId, rememberTheme } from "./theme.js";
