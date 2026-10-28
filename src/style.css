@@ -411,7 +411,7 @@ h1 {
   flex-basis: 100%;
 }
 .exercise-bottom details[open] summary {
-  justify-content: start;
+  display: none;
 }
 .set-grid {
   display: grid;
@@ -1513,4 +1513,25 @@ footer span {
 .checkbox:focus-visible {
   outline: 2px solid var(--secondary);
   outline-offset: 3px;
+}
+
+.exercise:not(:has(details[open])) {
+  cursor: pointer;
+}
+
+.exercise-collapse {
+  display: none;
+  flex: 0 0 48px;
+  width: 48px;
+  min-height: 48px;
+  margin-left: auto;
+  padding: 0;
+  place-items: center;
+  color: var(--accent);
+  background: var(--tint);
+  border: 1px solid var(--tint-border);
+  border-radius: 8px;
+}
+.exercise:has(details[open]) .exercise-collapse {
+  display: grid;
 }
