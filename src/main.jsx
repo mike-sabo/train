@@ -12,6 +12,7 @@ import {
   Play,
   Lock,
   Plus,
+  Minus,
   LogOut,
   Flame,
   Clock,
@@ -710,6 +711,22 @@ function App() {
                                       )}
                                     </p>
                                   </div>
+                                  <button
+                                    type="button"
+                                    className="exercise-collapse"
+                                    aria-label={`Collapse ${variant.name}`}
+                                    title="Collapse exercise"
+                                    onClick={(event) => {
+                                      const card =
+                                        event.currentTarget.closest("article");
+                                      const details =
+                                        card.querySelector("details");
+                                      details.open = false;
+                                      details.querySelector("summary").focus();
+                                    }}
+                                  >
+                                    <Minus size={28} aria-hidden="true" />
+                                  </button>
                                 </div>
                                 <div className="exercise-bottom">
                                   <a
