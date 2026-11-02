@@ -1515,7 +1515,8 @@ footer span {
   outline-offset: 3px;
 }
 
-.exercise:not(:has(details[open])) {
+.exercise:not(:has(details[open])),
+.exercise-top {
   cursor: pointer;
 }
 
