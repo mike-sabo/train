@@ -13,6 +13,23 @@ export function makeEntry(variant, previous) {
   };
 }
 
+export function resolveEntry(exercise, saved, history = {}) {
+  const variant =
+    [exercise, ...(exercise.substitutions ?? [])].find(
+      (variant) => variant.id === saved?.variant,
+    ) ?? exercise;
+  if (!saved) return makeEntry(variant, history[variant.id]);
+  if (saved.done || !history[variant.id]) return saved;
+  // Blank saved suggestions must not hide a workout completed since they were saved.
+  return {
+    ...saved,
+    sets: saved.sets.map((set, index) => ({
+      weight: set.weight ?? history[variant.id].sets[index]?.weight ?? null,
+      reps: set.reps ?? history[variant.id].sets[index]?.reps ?? null,
+    })),
+  };
+}
+
 export function getSetLinking(entry) {
   if (entry.setLinking) return entry.setLinking;
   const first = entry.sets[0];

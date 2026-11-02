@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { createApp } from "../server/app.js";
+import { makeEntry, resolveEntry } from "../shared/workouts.js";
 import { addDays, today } from "../server/schema.js";
 const origin = "http://localhost:5173";
 async function fixture(t, path = ":memory:", config = {}) {
@@ -1146,4 +1147,80 @@ test("future weights persist without allowing early exercise or workout completi
       .status,
     400,
   );
+});
+
+test("a saved blank day carries later-recorded history into a one-click checkoff", async (t) => {
+  const { request, login } = await fixture(t);
+  const owner = await login("mike@example.com");
+  const monday = addDays(
+    today(),
+    -((new Date(today() + "T12:00:00Z").getUTCDay() + 6) % 7) - 7,
+  );
+  const nextMonday = addDays(monday, 7);
+  assert.equal(
+    (
+      await request(
+        "/blocks",
+        { planKey: "three-day-foundation@5", start: monday, weeks: 2 },
+        owner,
+      )
+    ).status,
+    200,
+  );
+  const plan = (await request("/state", undefined, owner)).data.plans.find(
+    (plan) => plan.version === 5,
+  );
+  const exercise = plan.days[0].exercises[0];
+  const save = (date, entries, revision = 0) =>
+    request(
+      "/logs/" + date,
+      { entries, completed: false, revision },
+      owner,
+      "PUT",
+    );
+  assert.equal(
+    (await save(nextMonday, { [exercise.id]: makeEntry(exercise) })).status,
+    200,
+  );
+  const sets = [
+    { weight: 120, reps: 12 },
+    { weight: 115, reps: 10 },
+    { weight: 110, reps: 8 },
+  ];
+  assert.equal(
+    (
+      await save(monday, {
+        [exercise.id]: { done: true, variant: exercise.id, sets },
+      })
+    ).status,
+    200,
+  );
+  const state = (await request("/state?week=" + nextMonday, undefined, owner))
+    .data;
+  const log = state.logs.find(
+    (row) => row.date === nextMonday && row.member_id === state.me.id,
+  );
+  const history = (
+    await request("/history?before=" + nextMonday, undefined, owner)
+  ).data.history;
+  const entry = resolveEntry(exercise, log.body[exercise.id], history);
+  assert.deepEqual(entry.sets, sets);
+  assert.equal(entry.done, false);
+  assert.equal(
+    (
+      await save(
+        nextMonday,
+        { [exercise.id]: { ...entry, done: true } },
+        log.revision,
+      )
+    ).status,
+    200,
+  );
+  const reloaded = (
+    await request("/state?week=" + nextMonday, undefined, owner)
+  ).data.logs.find(
+    (row) => row.date === nextMonday && row.member_id === state.me.id,
+  );
+  assert.deepEqual(reloaded.body[exercise.id].sets, sets);
+  assert.equal(reloaded.body[exercise.id].done, true);
 });

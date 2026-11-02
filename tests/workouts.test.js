@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   makeEntry,
+  resolveEntry,
   groupExercises,
   getSetLinking,
   editSet,
@@ -182,4 +183,75 @@ test("body groups keep the first group order and the exercise order within each 
     exercises.length,
   );
   assert.deepEqual(groupExercises([]), []);
+});
+
+test("blank planned entries pick up history recorded after the plan was saved", () => {
+  const exercise = { id: "press", sets: 3 };
+  const saved = makeEntry(exercise);
+  const history = {
+    press: {
+      sets: [
+        { weight: 55, reps: 12 },
+        { weight: 50, reps: 10 },
+        { weight: 45, reps: 8 },
+      ],
+    },
+  };
+  const entry = resolveEntry(exercise, saved, history);
+  assert.deepEqual(entry.sets, history.press.sets);
+  assert.equal(entry.done, false);
+  assert.equal(saved.sets[0].weight, null);
+  const completed = { ...entry, done: true };
+  assert.deepEqual(completed.sets, history.press.sets);
+});
+
+test("carryover preserves entered values, zeroes, set links, and completed records", () => {
+  const exercise = { id: "press", sets: 3 };
+  const saved = {
+    ...makeEntry(exercise),
+    sets: [
+      { weight: 0, reps: null },
+      { weight: null, reps: 9 },
+      { weight: 60, reps: 8 },
+    ],
+    setLinking: { enabled: false, independent: [false, true, true] },
+  };
+  const history = {
+    press: {
+      sets: Array.from({ length: 3 }, () => ({ weight: 55, reps: 12 })),
+    },
+  };
+  const entry = resolveEntry(exercise, saved, history);
+  assert.deepEqual(entry.sets, [
+    { weight: 0, reps: 12 },
+    { weight: 55, reps: 9 },
+    { weight: 60, reps: 8 },
+  ]);
+  assert.deepEqual(entry.setLinking, saved.setLinking);
+  const completed = { ...saved, done: true };
+  assert.equal(resolveEntry(exercise, completed, history), completed);
+  assert.equal(resolveEntry(exercise, saved, {}), saved);
+});
+
+test("carryover uses the selected variation and leaves unmatched extra sets blank", () => {
+  const exercise = {
+    id: "press",
+    sets: 3,
+    substitutions: [{ id: "incline", sets: 3 }],
+  };
+  const saved = makeEntry(exercise.substitutions[0]);
+  const history = {
+    press: { sets: [{ weight: 100, reps: 5 }] },
+    incline: { sets: [{ weight: 45, reps: 10 }] },
+  };
+  assert.deepEqual(resolveEntry(exercise, saved, history).sets, [
+    { weight: 45, reps: 10 },
+    { weight: null, reps: null },
+    { weight: null, reps: null },
+  ]);
+  assert.equal(resolveEntry(exercise, saved, { press: history.press }), saved);
+  assert.deepEqual(resolveEntry(exercise, undefined, history).sets[0], {
+    weight: 100,
+    reps: 5,
+  });
 });
