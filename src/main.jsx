@@ -685,7 +685,10 @@ function App() {
                                     event.target.closest(".exercise-top")
                                   ) {
                                     details.open = false;
-                                    details.querySelector("summary").focus();
+                                    if (event.detail === 0)
+                                      details
+                                        .querySelector("summary")
+                                        .focus({ preventScroll: true });
                                   } else {
                                     details.open = true;
                                   }
@@ -741,7 +744,10 @@ function App() {
                                       const details =
                                         card.querySelector("details");
                                       details.open = false;
-                                      details.querySelector("summary").focus();
+                                      if (event.detail === 0)
+                                        details
+                                          .querySelector("summary")
+                                          .focus({ preventScroll: true });
                                     }}
                                   >
                                     <Minus size={28} aria-hidden="true" />
