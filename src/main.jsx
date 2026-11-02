@@ -29,6 +29,7 @@ import { themes, getTheme } from "../shared/themes.js";
 import { applyTheme, readThemeId, rememberTheme } from "./theme.js";
 import {
   makeEntry,
+  resolveEntry,
   groupExercises,
   getSetLinking,
   editSet,
@@ -124,7 +125,7 @@ function App() {
     setPreviewTheme(theme.id);
   }, [theme.id]);
   useEffect(() => {
-    setDraft(log?.body ?? {});
+    setDraft({});
     setDirty(false);
   }, [selected, log, data.me.id, preview]);
   const historyContext = `${data.me.id}:${selected}:${preview}`;
@@ -173,7 +174,8 @@ function App() {
     preview,
     previewLogs,
   ]);
-  const previous = history.context === historyContext ? history.entries : {};
+  const historyReady = history.context === historyContext;
+  const previous = historyReady ? history.entries : {};
   async function load() {
     const sequence = ++loadSequence.current;
     try {
@@ -225,7 +227,7 @@ function App() {
     setWeek(monday(date));
   }
   function entry(e) {
-    return draft[e.id] ?? log?.body[e.id] ?? makeEntry(e, previous[e.id]);
+    return draft[e.id] ?? resolveEntry(e, log?.body[e.id], previous);
   }
   const currentEntries = Object.fromEntries(
     (day?.exercises ?? []).map((exercise) => [exercise.id, entry(exercise)]),
@@ -630,6 +632,11 @@ function App() {
                     />
                   </div>
                   <div className="exercise-list">
+                    {!historyReady && (
+                      <p className="small muted" role="status">
+                        Loading your previous weights and reps…
+                      </p>
+                    )}
                     {historyError && (
                       <p className="small muted" role="status">
                         {historyError}
@@ -684,7 +691,9 @@ function App() {
                                     }
                                     role="checkbox"
                                     aria-checked={ent.done}
-                                    disabled={busy || selected > today}
+                                    disabled={
+                                      busy || !historyReady || selected > today
+                                    }
                                     onClick={() =>
                                       act(async () => {
                                         const next = {
@@ -771,7 +780,7 @@ function App() {
                                         </p>
                                         <button
                                           className="text-button"
-                                          disabled={busy}
+                                          disabled={busy || !historyReady}
                                           onClick={() =>
                                             update(
                                               e,
@@ -802,7 +811,7 @@ function App() {
                                           aria-checked={linking.enabled}
                                           aria-label={`${variant.name}: Same for all sets`}
                                           aria-describedby={`set-link-note-${e.id}`}
-                                          disabled={busy}
+                                          disabled={busy || !historyReady}
                                           onClick={() =>
                                             update(
                                               e,
@@ -848,7 +857,7 @@ function App() {
                                             max="3000"
                                             step="0.5"
                                             value={s.weight ?? ""}
-                                            disabled={busy}
+                                            disabled={busy || !historyReady}
                                             onChange={(ev) =>
                                               update(
                                                 e,
@@ -870,7 +879,7 @@ function App() {
                                             min="0"
                                             max="1000"
                                             value={s.reps ?? ""}
-                                            disabled={busy}
+                                            disabled={busy || !historyReady}
                                             onChange={(ev) =>
                                               update(
                                                 e,
@@ -893,7 +902,7 @@ function App() {
                                         Exercise variation
                                         <select
                                           value={ent.variant}
-                                          disabled={busy}
+                                          disabled={busy || !historyReady}
                                           onChange={(ev) => {
                                             const v = [
                                               e,
@@ -928,7 +937,7 @@ function App() {
                     {dirty && (
                       <button
                         className="outline"
-                        disabled={busy}
+                        disabled={busy || !historyReady}
                         onClick={() =>
                           act(() =>
                             persist(
@@ -948,6 +957,7 @@ function App() {
                       className="solid"
                       disabled={
                         busy ||
+                        !historyReady ||
                         completed < day.exercises.length ||
                         selected > today
                       }
