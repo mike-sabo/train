@@ -676,9 +676,19 @@ function App() {
                                     )
                                   )
                                     return;
-                                  event.currentTarget.querySelector(
-                                    "details",
-                                  ).open = true;
+                                  const details =
+                                    event.currentTarget.querySelector(
+                                      "details",
+                                    );
+                                  if (
+                                    details.open &&
+                                    event.target.closest(".exercise-top")
+                                  ) {
+                                    details.open = false;
+                                    details.querySelector("summary").focus();
+                                  } else {
+                                    details.open = true;
+                                  }
                                 }}
                               >
                                 <div className="exercise-top">
