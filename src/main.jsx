@@ -23,7 +23,7 @@ import {
   CheckCircle2,
   Palette,
 } from "lucide-react";
-import initialPlan from "../plans/foundation-v5.json";
+import initialPlan from "../plans/foundation-v6.json";
 import { latestPlanVersions } from "../shared/plans.js";
 import { themes, getTheme } from "../shared/themes.js";
 import { applyTheme, readThemeId, rememberTheme } from "./theme.js";
@@ -36,6 +36,7 @@ import {
   setSameForAll,
 } from "../shared/workouts.js";
 import "./style.css";
+import { WorkoutConfetti } from "./WorkoutConfetti.jsx";
 import { InstallApp } from "./InstallApp.jsx";
 import { api } from "./api.js";
 const key = (p) => `${p.id}@${p.version}`;
@@ -73,6 +74,7 @@ function App() {
     [modal, setModal] = useState(null),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
+    [celebration, setCelebration] = useState(0),
     [busy, setBusy] = useState(false),
     [previewLogs, setPreviewLogs] = useState([]),
     [history, setHistory] = useState({ context: "", entries: {} }),
@@ -434,6 +436,7 @@ function App() {
       onFocusCapture={selectInputContents}
       onClickCapture={selectInputContents}
     >
+      {celebration > 0 && <WorkoutConfetti key={celebration} />}
       <header>
         <a className="brand" href={import.meta.env.BASE_URL}>
           <Dumbbell />
@@ -977,7 +980,12 @@ function App() {
                         completed < day.exercises.length ||
                         selected > today
                       }
-                      onClick={() => act(() => persist(currentEntries, true))}
+                      onClick={() =>
+                        act(async () => {
+                          await persist(currentEntries, true);
+                          setCelebration((value) => value + 1);
+                        })
+                      }
                     >
                       <CheckCircle2 size={18} />
                       {log?.completed ? "Workout complete" : "Complete workout"}

@@ -85,10 +85,10 @@ test("local seeding adds version 5 without changing older plans, pinned blocks, 
     .prepare("SELECT body FROM plans")
     .all()
     .map((row) => JSON.parse(row.body));
-  assert.equal(plans.length, 5);
+  assert.equal(plans.length, 6);
   for (const plan of plans)
     assert.deepEqual(plan, planSchema.parse(readPlan(plan.version)));
-  assert.deepEqual(latestPlanVersions(plans), [planSchema.parse(readPlan(5))]);
+  assert.deepEqual(latestPlanVersions(plans), [planSchema.parse(readPlan(6))]);
 });
 
 test("the plan picker shows the latest revision while retaining older plans for history", () => {
@@ -110,4 +110,21 @@ test("the plan picker shows the latest revision while retaining older plans for 
     nextRoutine,
   ]);
   assert.deepEqual(latestPlanVersions([]), []);
+});
+
+test("Foundation version 6 adds only Wednesday machines and preserves existing exercises", () => {
+  const previous = readPlan(5);
+  const current = readPlan(6);
+  assert.equal(planSchema.safeParse(current).success, true);
+  assert.deepEqual(current.days[0], previous.days[0]);
+  assert.deepEqual(current.days[2], previous.days[2]);
+  const exercises = current.days[1].exercises;
+  assert.deepEqual(exercises.slice(0, -2), previous.days[1].exercises);
+  assert.deepEqual(
+    exercises.slice(-2).map(({ id, sets }) => ({ id, sets })),
+    [
+      { id: "machine-shoulder-press", sets: 3 },
+      { id: "pec-fly-machine", sets: 3 },
+    ],
+  );
 });

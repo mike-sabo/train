@@ -105,3 +105,8 @@ Integration tests cover invitation-only sign-in, code expiration and reuse, fail
 Logging tests cover earlier dates, completed exercises, independent members and variations, renamed exercises, changed set counts, zero values, automatic fill, custom sets, switch behavior, and saved set links. Theme tests cover persistence, invalid choices, cross-account writes, revoked access, and cross-origin requests. Mobile checks exercise automatic fill, individual overrides, saving and reloading, separate calf history, and theme changes without losing edits.
 
 Hosted tests additionally exercise PostgreSQL migrations, denied direct database access, CORS, bearer sessions, persisted failed-code limits, delayed-email revocation races, simultaneous writes, member privacy, and client session storage.
+
+
+Foundation version 6 adds Shoulder Press Machine (3 × 8–12) and Pectoral Fly Machine (3 × 10–15) on Wednesday only. New exercises start blank and use their own history. The preview and newly scheduled blocks use version 6. After publishing, run `supabase/operations/activate_foundation_v6.sql` once to add and activate the plan for the existing block from November 11, 2026. Earlier dates keep version 5; saved sets from November 11 onward are preserved, and Wednesday completion is cleared for the new exercises. Refresh open pages afterward. This operation is transactional and safe to repeat.
+
+Completing a workout successfully shows falling confetti for about six seconds in a continuous shower. Failed saves do not celebrate. The overlay allows clicks through and respects reduced-motion settings.

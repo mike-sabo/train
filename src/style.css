@@ -1536,3 +1536,32 @@ footer span {
 .exercise:has(details[open]) .exercise-collapse {
   display: grid;
 }
+
+.workout-confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  overflow: hidden;
+}
+.workout-confetti i {
+  position: absolute;
+  top: -24px;
+  width: 9px;
+  height: 15px;
+  animation: confetti-fall linear both;
+}
+@keyframes confetti-fall {
+  from {
+    transform: translate3d(0, -20px, 0) rotate(0deg);
+  }
+  to {
+    transform: translate3d(var(--drift), calc(100vh + 50px), 0)
+      rotate(var(--spin));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workout-confetti {
+    display: none;
+  }
+}
